@@ -14,7 +14,6 @@ from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-django.contrib.staticfiles
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
@@ -65,7 +64,7 @@ ASGI_APPLICATION = 'django_project.asgi.application'
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {django.contrib.staticfiles
+        "CONFIG": {
             "hosts": [("127.0.0.1", 6379)],  # Ensure Redis is running on this port
         },
     },
@@ -83,7 +82,7 @@ MIDDLEWARE = [
 ]
 
 CORS_ALLOW_CREDENTIALS = True
-django.contrib.staticfiles
+
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
 ]
