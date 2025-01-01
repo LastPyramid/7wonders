@@ -3,6 +3,7 @@ from aioredis.lock import Lock
 import json
 from time import time
 from channels.layers import get_channel_layer
+from ..game.game_logic import setup_game
 
 redis = None  # Global Redis connection object
 
@@ -78,17 +79,6 @@ async def start_game(game_id):
     except Exception as e:
         print(f"error {e}")
 
-async def setup_player_resources(game_id): # we need to input different stuff depending on 
-    redis = await get_redis_connection()
-    game_data = await redis.hgetall(f"game:{game_id}")
-    player_names = eval(game_data["players"])
-    for player_name in player_names:
-        resources = {
-            "coins": "3",
-        }
-        redis.hset(f"game:{game_id}:{player_name}", "")
-
-
 async def get_player_websockets(game_id):
     redis = await get_redis_connection()
     game_data = await redis.hgetall(f"game:{game_id}")
@@ -158,3 +148,54 @@ async def get_lobbies():
     })
     print(lobbies)
     return lobbies
+
+async def setup_player_resources(game_id):
+    redis = await get_redis_connection()
+    game_data = await redis.hgetall(f"game:{game_id}")
+    player_names = eval(game_data["players"])
+    game = setup_game(len(player_names))
+    for player, player_name in zip(game.players, player_names):
+        if player.wonder == "Colossus of Rhodes": 
+            redis.hset(f"game:{game_id}:{player_name}", "ore", "1")
+            redis.hset(f"game:{game_id}:{player_name}", "wonder", "Colossus of Rhodes")
+        elif player.wonder == "Colossus of Rhodes Night":
+            redis.hset(f"game:{game_id}:{player_name}", "ore", "1")
+            redis.hset(f"game:{game_id}:{player_name}", "wonder", "Colossus of Rhodes Night")
+        elif player.wonder == "Lighthouse of Alexandria":
+            redis.hset(f"game:{game_id}:{player_name}", "glass", "1")
+            redis.hset(f"game:{game_id}:{player_name}", "wonder", "Lighthouse of Alexandria")
+        elif player.wonder == "Lighthouse of Alexandria Night":
+            redis.hset(f"game:{game_id}:{player_name}", "glass", "1")
+            redis.hset(f"game:{game_id}:{player_name}", "wonder", "Lighthouse of Alexandria Night")
+        elif player.wonder == "Temple of Artemis in Ephesus":
+            redis.hset(f"game:{game_id}:{player_name}", "papyrus", "1")
+            redis.hset(f"game:{game_id}:{player_name}", "wonder", "Temple of Artemis in Ephesus")
+        elif player.wonder == "Temple of Artemis in Ephesus Night":
+            redis.hset(f"game:{game_id}:{player_name}", "papyrus", "1")
+            redis.hset(f"game:{game_id}:{player_name}", "wonder", "Temple of Artemis in Ephesus Night")
+        elif player.wonder == "Hanging Gardens of Babylon":
+            redis.hset(f"game:{game_id}:{player_name}", "clay", "1")
+            redis.hset(f"game:{game_id}:{player_name}", "wonder", "Hanging Gardens of Babylon")
+        elif player.wonder == "Hanging Gardens of Babylon Night":
+            redis.hset(f"game:{game_id}:{player_name}", "clay", "1")
+            redis.hset(f"game:{game_id}:{player_name}", "wonder", "Hanging Gardens of Babylon Night")
+        elif player.wonder == "Statue of Zeus in Olympia":
+            redis.hset(f"game:{game_id}:{player_name}", "wood", "1")
+            redis.hset(f"game:{game_id}:{player_name}", "wonder", "Statue of Zeus in Olympia")
+        elif player.wonder == "Statue of Zeus in Olympia Night":
+            redis.hset(f"game:{game_id}:{player_name}", "wood", "1")
+            redis.hset(f"game:{game_id}:{player_name}", "wonder", "Statue of Zeus in Olympia Night")
+        elif player.wonder == "Mausoleum of Halicarnassus":
+            redis.hset(f"game:{game_id}:{player_name}", "cloth", "1")
+            redis.hset(f"game:{game_id}:{player_name}", "wonder", "Mausoleum of Halicarnassus")
+        elif player.wonder == "Mausoleum of Halicarnassus Night":
+            redis.hset(f"game:{game_id}:{player_name}", "cloth", "1")
+            redis.hset(f"game:{game_id}:{player_name}", "wonder", "Mausoleum of Halicarnassus Night")
+        elif player.wonder == "Pyramids of Giza":
+            redis.hset(f"game:{game_id}:{player_name}", "stone", "1")
+            redis.hset(f"game:{game_id}:{player_name}", "wonder", "Pyramids of Giza")
+        elif player.wonder == "Pyramids of Giza Night":
+            redis.hset(f"game:{game_id}:{player_name}", "stone", "1")
+            redis.hset(f"game:{game_id}:{player_name}", "wonder", "Pyramids of Giza Night")
+        else:
+            raise Exception("invalid wonder during resource setup")
