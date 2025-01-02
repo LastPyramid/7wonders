@@ -1,6 +1,5 @@
 import aioredis
 from aioredis.lock import Lock
-import json
 from time import time
 from channels.layers import get_channel_layer
 from ..game.game_logic import setup_game
@@ -64,7 +63,7 @@ async def add_player_to_game(player_name, game_id):
         print(f"Error: {e}")
     return "success"
 
-async def start_game(game_id):
+async def start_game(game_id, game):
     redis = await get_redis_connection()
     lock = Lock(redis, f"game:{game_id}", timeout=10)
     try:
@@ -73,8 +72,10 @@ async def start_game(game_id):
             status = game_data["status"]
             if status == "full" or status == "open":
                 await redis.hset(f"game:{game_id}", "status", "started")
+                result = setup_player_resources(game_id, game)
+                return "ok"
             else:
-                return "started already"
+                return "failed"
 
     except Exception as e:
         print(f"error {e}")
@@ -149,11 +150,10 @@ async def get_lobbies():
     print(lobbies)
     return lobbies
 
-async def setup_player_resources(game_id):
+async def setup_player_resources(game_id, game):
     redis = await get_redis_connection()
     game_data = await redis.hgetall(f"game:{game_id}")
     player_names = eval(game_data["players"])
-    game = setup_game(len(player_names))
     for player, player_name in zip(game.players, player_names):
         if player.wonder == "Colossus of Rhodes": 
             redis.hset(f"game:{game_id}:{player_name}", "ore", "1")
@@ -198,4 +198,4 @@ async def setup_player_resources(game_id):
             redis.hset(f"game:{game_id}:{player_name}", "stone", "1")
             redis.hset(f"game:{game_id}:{player_name}", "wonder", "Pyramids of Giza Night")
         else:
-            raise Exception("invalid wonder during resource setup")
+            raise Exception("Error during resource setup")
