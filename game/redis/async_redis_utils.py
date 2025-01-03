@@ -3,6 +3,7 @@ from aioredis.lock import Lock
 from time import time
 from channels.layers import get_channel_layer
 from ..game.game_logic import setup_game
+import pickle
 
 redis = None  # Global Redis connection object
 
@@ -14,9 +15,14 @@ async def get_redis_connection():
 
 async def get_number_of_player_from_a_game(game_id):
     redis = await get_redis_connection()
-    game_data = redis.hgetall(f"gameid:{game_id}")
-    number_of_players = eval(game_data["players"])
-    return number_of_players
+    lock = Lock(redis, f"lock:game:{game_id}", timeout=10)  # 10-second lock
+    try:
+        async with lock:
+            game_data = redis.hgetall(f"gameid:{game_id}")
+            number_of_players = eval(game_data["players"])
+            return number_of_players
+    except Exception as e:
+        print(f"could not get number of players from game {game_id}, error: {e}")
 
 async def create_game_in_redis():
     print("Creating a game in redis!")
@@ -46,7 +52,7 @@ async def update_last_seen(game_id, player_name):
 async def add_player_to_game(player_name, game_id):
     print("Trying to add player to game....")
     redis = await get_redis_connection()
-    lock = Lock(redis, f"game:{game_id}", timeout=10)  # why is the lock lock:game should it not be game: only?
+    lock = Lock(redis, f"lock:game:{game_id}", timeout=10)  # why is the lock lock:game should it not be game: only?
     try:
         async with lock:
             game_data = await redis.hgetall(f"game:{game_id}")
@@ -82,20 +88,26 @@ async def start_game(game_id, game):
 
 async def get_player_websockets(game_id):
     redis = await get_redis_connection()
-    game_data = await redis.hgetall(f"game:{game_id}")
-    players = eval(game_data["players"])
-    websockets = []
-    for player in players:
-        try:
-            player_websocket_channel_name = await redis.hget(f"websocket_info:{player}", "channel_name")
-            websockets.append(player_websocket_channel_name)
-        except Exception as e:
-            print(f"Could not get websockets: {e}")
-    return websockets
+    lock = Lock(redis, f"lock:game:{game_id}", timeout=10)  # 10-second lock
+    try:
+        async with lock:
+            game_data = await redis.hgetall(f"game:{game_id}")
+            players = eval(game_data["players"])
+            websockets = []
+            for player in players:
+                try:
+                    player_websocket_channel_name = await redis.hget(f"websocket_info:{player}", "channel_name")
+                    websockets.append(player_websocket_channel_name)
+                except Exception as e:
+                    print(f"Could not get websockets: {e}")
+            return websockets
+    except Exception as e:
+        raise print(f"Could not get websockets from game {game_id}")
+        
 
 async def add_player_websocket_group(game_id, player_name, group_name, channel_name):
     redis = await get_redis_connection()
-    await redis.hset(f"websocket_info:{player_name}", 'channel_name', channel_name)
+    await redis.hset(f"websocket_info:{player_name}", 'channel_name', channel_name) # needs to be cleared after the game
     await redis.hset(f"websocket_info:{player_name}", 'group_name', group_name)
 
 async def remove_player_from_channels_websocket_group(player_name):
@@ -131,6 +143,27 @@ async def remove_player_from_game(player_name, game_id):
     except Exception as e:
         print(f"Could not remove player:{player_name} {e}")
     return "ok"
+
+async def insert_game_into_redis(game_id, game):
+    redis = await get_redis_connection()
+    lock = Lock(redis, f"lock:game:{game_id}", timeout=10)
+    try:
+        async with lock:
+            serialized_game = pickle.dumps(game)
+            redis.hset(f"game:{game_id}", "game", serialized_game)
+    except Exception as e:
+        print(f"Could not insert game into redis error: {e}")
+            
+async def get_game_from_redis(game_id):
+    redis = await get_redis_connection()
+    lock = Lock(redis, f"lock:game:{game_id}", timeout=10)
+    try:
+        async with lock:
+            serialized_game = await redis.hget(f"game:{game_id}", "game")
+            game = pickle.loads(serialized_game)
+            return game
+    except Exception as e:
+        print("could not get game from redis")
 
 async def get_lobbies():
     redis = await get_redis_connection()

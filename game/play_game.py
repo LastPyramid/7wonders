@@ -1,6 +1,9 @@
 from .redis.async_redis_utils import get_player_websockets, get_number_of_player_from_a_game, start_game
 from .game.game_logic import setup_game
 
+def setup_game():
+    pass
+
 def start(game_id): # start_game is async so you have to deal with that.
     websockets = get_player_websockets(game_id)
     number_of_players = get_number_of_player_from_a_game(game_id)
