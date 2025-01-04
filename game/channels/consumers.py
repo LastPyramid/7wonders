@@ -1,6 +1,6 @@
 from channels.generic.websocket import AsyncWebsocketConsumer
 import json
-from ..redis.async_redis_utils import add_player_to_game, remove_player_from_game, update_last_seen, add_player_websocket_group, get_player_channel_names, get_number_of_player_from_a_game
+from ..redis.async_redis_utils import add_player_to_game, remove_player_from_game, update_last_seen, add_player_websocket_group, get_player_channel_names, get_players, lock_game, insert_game_into_redis
 from ..game.game_logic import setup_game
 
 class GameConsumer(AsyncWebsocketConsumer):
@@ -49,20 +49,39 @@ class GameConsumer(AsyncWebsocketConsumer):
             await update_last_seen(self.game_id, self.player_name)
             print(f"Received heartbeat from {self.channel_name}")
 
-        if data.get("type") == "start":
+        if data.get("type") == "setup":
             game_id = self.scope['url_route']['kwargs']['game_id']
-            channel_names = get_player_channel_names(game_id)
-            number_of_players = get_players(game_id)
-            if len(channel_names) != number_of_players:
-                print("amount of websockets connections should be equal to number of players") # add proper handeling later
-            game = setup_game(number_of_players)
-            for channel_name in channel_names:
+            result = lock_game(game_id)
+            if result == "failed":
                 await self.channel_layer.send(
-                    channel_name,
+                    self.channel_name,
                     {
-                        
+                        "type": "chat_message",
+                        "message": "could not start the game, someone else probably initiated the process before you."
                     }
                 )
+            else:
+                channel_names = get_player_channel_names(game_id)
+                players = get_players(game_id)
+                if len(channel_names) != len(players):
+                    print("amount of websockets connections should be equal to number of players") # add proper handeling later
+                game = setup_game(players)
+                insert_game_into_redis(game_id, game)
+                for player_name, channel_name in channel_names.items():
+                    wonder = None
+                    for game_player in game.players:
+                        if game_player.name == player_name:
+                            wonder = game_player.wonder
+                    if wonder == None:
+                        raise Exception("players in the game object, websocket:{players} and game{game_id} should be the same.")
+                    await self.channel_layer.send( # front-end should send back the choice
+                    channel_name,
+                        {
+                            "type":"setup",
+                            "wonder_choice":[wonder[0], wonder[1]]
+                        }
+                    )
+                
 
 
         # Broadcast message to group

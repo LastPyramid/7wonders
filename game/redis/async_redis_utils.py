@@ -69,16 +69,15 @@ async def add_player_to_game(player_name, game_id):
         print(f"Error: {e}")
     return "success"
 
-async def start_game(game_id, game):
+async def lock_game(game_id):
     redis = await get_redis_connection()
-    lock = Lock(redis, f"game:{game_id}", timeout=10)
+    lock = Lock(redis, f"lock:game:{game_id}", timeout=10)
     try:
         async with lock:
             game_data = await redis.hgetall(f"game:{game_id}")
             status = game_data["status"]
             if status == "full" or status == "open":
                 await redis.hset(f"game:{game_id}", "status", "started")
-                result = setup_player_resources(game_id, game)
                 return "ok"
             else:
                 return "failed"
@@ -93,11 +92,11 @@ async def get_player_channel_names(game_id):
         async with lock:
             game_data = await redis.hgetall(f"game:{game_id}")
             players = eval(game_data["players"])
-            websockets = []
+            websockets = {}
             for player in players:
                 try:
                     player_websocket_channel_name = await redis.hget(f"websocket_info:{player}", "channel_name")
-                    websockets.append(player_websocket_channel_name)
+                    websockets[player] = player_websocket_channel_name
                 except Exception as e:
                     print(f"Could not get websockets: {e}")
             return websockets
