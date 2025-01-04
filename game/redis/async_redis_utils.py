@@ -13,16 +13,16 @@ async def get_redis_connection():
         redis = await aioredis.from_url("redis://127.0.0.1:6379", decode_responses=True)
     return redis
 
-async def get_number_of_player_from_a_game(game_id):
+async def get_players(game_id):
     redis = await get_redis_connection()
     lock = Lock(redis, f"lock:game:{game_id}", timeout=10)  # 10-second lock
     try:
         async with lock:
             game_data = redis.hgetall(f"gameid:{game_id}")
-            number_of_players = eval(game_data["players"])
+            number_of_players = game_data["players"]
             return number_of_players
     except Exception as e:
-        print(f"could not get number of players from game {game_id}, error: {e}")
+        print(f"could not get players from game {game_id}, error: {e}")
 
 async def create_game_in_redis():
     print("Creating a game in redis!")
@@ -86,7 +86,7 @@ async def start_game(game_id, game):
     except Exception as e:
         print(f"error {e}")
 
-async def get_player_websockets(game_id):
+async def get_player_channel_names(game_id):
     redis = await get_redis_connection()
     lock = Lock(redis, f"lock:game:{game_id}", timeout=10)  # 10-second lock
     try:

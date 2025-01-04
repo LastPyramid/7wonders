@@ -1,6 +1,7 @@
 from channels.generic.websocket import AsyncWebsocketConsumer
 import json
-from ..redis.async_redis_utils import add_player_to_game, remove_player_from_game, update_last_seen, add_player_websocket_group
+from ..redis.async_redis_utils import add_player_to_game, remove_player_from_game, update_last_seen, add_player_websocket_group, get_player_channel_names, get_number_of_player_from_a_game
+from ..game.game_logic import setup_game
 
 class GameConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -43,10 +44,26 @@ class GameConsumer(AsyncWebsocketConsumer):
         data = json.loads(text_data)
 
         if data.get("type") == "heartbeat":
-            self.game_id = self.scope['url_route']['kwargs']['game_id']
+            self.game_id = self.scope['url_route']['kwargs']['game_id'] # do we really need self.game_id?
             self.player_name = self.scope['url_route']['kwargs']['player_name']
             await update_last_seen(self.game_id, self.player_name)
             print(f"Received heartbeat from {self.channel_name}")
+
+        if data.get("type") == "start":
+            game_id = self.scope['url_route']['kwargs']['game_id']
+            channel_names = get_player_channel_names(game_id)
+            number_of_players = get_players(game_id)
+            if len(channel_names) != number_of_players:
+                print("amount of websockets connections should be equal to number of players") # add proper handeling later
+            game = setup_game(number_of_players)
+            for channel_name in channel_names:
+                await self.channel_layer.send(
+                    channel_name,
+                    {
+                        
+                    }
+                )
+
 
         # Broadcast message to group
         if data.get("type") == "message":

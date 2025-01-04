@@ -6,8 +6,9 @@ from ..generation.generate_age_III_cards import generate_age_III_cards
 from ..generation.generate_wonders import generate_wonders
 import random
 
-def setup_game(nr_of_players):
+def setup_game(list_of_players):
 	wonders = generate_wonders()
+	nr_of_players = len(list_of_players)
 	random.shuffle(wonders)
 	age_I_cards = generate_age_I_cards(nr_of_players)
 	random.shuffle(age_I_cards)
@@ -19,8 +20,8 @@ def setup_game(nr_of_players):
 	players = []	
 	
 	#Create players
-	for number in range(nr_of_players):
-		player = Player(number, wonders.pop())
+	for name in list_of_players:
+		player = Player(wonders.pop(), name)
 		players.append(player)
 	
     # Give players cards

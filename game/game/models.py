@@ -24,9 +24,10 @@ class Resources:
         self.cloth = cloth
 
 class Player():
-    def __init__(self, number, wonder):
-        self.number = number
+    def __init__(self, wonder, name):
+        #self.number = number
         self.wonder = wonder
+        self.name = name
         self.resources = {}
         self.cards = []
         self.cards_to_pick_from = []
