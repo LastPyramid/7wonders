@@ -45,64 +45,64 @@ class Player():
         self.defeat_token = 0
 
 class Card:
-    def __init__(self, age, color, number_of_players, name, cost=None):
+    def __init__(self, age, color, number_of_players, name, cost=None, symbol=None, resource_choices=None):
         self.age = age
         self.color = color
         self.number_of_players = number_of_players
         self.name = name
         self.cost = cost or {}
+        self.symbol = symbol
+        self.resource_choices = resource_choices or {}
 
 class RawMaterial(Card):
-    def __init__(self, age, color, number_of_players, name, cost=None, wood=0, stone=0, clay=0, ore=0):
-        super().__init__(age, color, number_of_players, name, cost)
+    def __init__(self, age, color, number_of_players, name, cost=None, symbol=None, resource_choices=None, wood=0, stone=0, clay=0, ore=0):
+        super().__init__(age, color, number_of_players, name, cost, symbol, resource_choices)
         self.wood = wood
         self.stone = stone
         self.clay = clay
         self.ore = ore
 
 class ManufacturedGood(Card):
-    def __init__(self, age, color, number_of_players, name, cost=None, glass=None, papyrus=None, cloth=None):
-        super().__init__(age, color, number_of_players, name, cost)
+    def __init__(self, age, color, number_of_players, name, cost=None, symbol=None, resource_choices=None, glass=None, papyrus=None, cloth=None):
+        super().__init__(age, color, number_of_players, name, cost, symbol, resource_choices)
         self.glass = glass
         self.papyrus = papyrus
         self.cloth = cloth
 
 class CivilianStructure(Card):
-    def __init__(self, age, color, number_of_players, name, cost=None, victory_points=None):
-        super().__init__(age, color, number_of_players, name, cost)
+    def __init__(self, age, color, number_of_players, name, cost=None, symbol=None, resource_choices=None, victory_points=None):
+        super().__init__(age, color, number_of_players, name, cost, symbol, resource_choices)
         self.victory_points = victory_points
 
 class ScientificStructure(Card):
-    def __init__(self, age, color, number_of_players, name, cost=None, compass=None, gear=None, tablet=None):
-        super().__init__(age, color, number_of_players, name, cost)
+    def __init__(self, age, color, number_of_players, name, cost=None, symbol=None, resource_choices=None, compass=None, gear=None, tablet=None):
+        super().__init__(age, color, number_of_players, name, cost, symbol, resource_choices)
         self.compass = compass
         self.gear = gear
         self.tablet = tablet
 
 class CommercialStructure(Card):
-    def __init__(self, age, color, number_of_players, name, cost=None, west_trading=None, east_trading=None, marketplace=None, gold=None, resource_choices=None):
-        super().__init__(age, color, number_of_players, name, cost)
+    def __init__(self, age, color, number_of_players, name, cost=None, symbol=None, resource_choices=None, west_trading=None, east_trading=None, marketplace=None, gold=None):
+        super().__init__(age, color, number_of_players, name, cost, symbol, resource_choices)
         self.gold = gold
         self.west_trading = west_trading
         self.east_trading = east_trading
         self.marketplace = marketplace
-        self.resource_choices = resource_choices or {}
 
 class MilitaryStructure(Card):
-    def __init__(self, age, color, number_of_players, name, cost=None, shield=0):
-        super().__init__(age, color, number_of_players, name, cost)
+    def __init__(self, age, color, number_of_players, name, cost=None, symbol=None, resource_choices=None, shield=0):
+        super().__init__(age, color, number_of_players, name, cost, symbol, resource_choices)
         self.shield = shield
 
 class Guild(Card):
-    def __init__(self, age, color, number_of_players, name, resource_choices=None, cost=None, location=None, activity=None, victory_points=None, compass=None, gear=None, tablet=None):
-        super().__init__(age, color, number_of_players, name, cost)
+    def __init__(self, age, color, number_of_players, name, cost=None, symbol=None, resource_choices=None, location=None, activity=None, victory_points=None, compass=None, gear=None, tablet=None):
+        super().__init__(age, color, number_of_players, name, cost, symbol, resource_choices)
         self.location = location
         self.activity = activity
         self.victory_points = victory_points
         self.compass = compass
         self.gear = gear
         self.tablet = tablet
-        self.resource_choices = resource_choices
 
 class Wonder():
     def __init__(self, name, benefit, stage1, stage2, stage3, stage4=None):

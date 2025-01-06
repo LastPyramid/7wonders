@@ -49,7 +49,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             await update_last_seen(self.game_id, self.player_name)
             print(f"Received heartbeat from {self.channel_name}")
 
-        if data.get("type") == "setup":
+        if data.get("type") == "pick_wonder":
             game_id = self.scope['url_route']['kwargs']['game_id']
             result = lock_game(game_id)
             if result == "failed":
@@ -81,8 +81,8 @@ class GameConsumer(AsyncWebsocketConsumer):
                             "wonder_choice":[wonder[0], wonder[1]]
                         }
                     )
-                
-
+        if data.get("type") == "setup":
+            pass
 
         # Broadcast message to group
         if data.get("type") == "message":
