@@ -1,110 +1,107 @@
 from ..game.models import Wonder, Stage, Resources
 
 def generate_wonders():
-    colossus_of_rhodes = Wonder(
-        "Colossus of Rhodes", "ore",
-        stage1=Stage({"shield": 1, "victory_points": 3}, {"wood": 2}),
-        stage2=Stage({"victory_points": 4}, {"clay": 3}),
-        stage3=Stage({"shield": 1, "victory_points": 7}, {"ore": 4})
-    )
-
-    colossus_of_rhodes_night = Wonder(
-        "Colossus of Rhodes Night", "ore",
+    rhodes = Wonder(
+        "Rhodos", "ore",
         stage1=Stage({"victory_points": 3}, {"wood": 2}),
-        stage2=Stage({"victory_points": 4, "shield": 1}, {"clay": 3}),
-        stage3=Stage({"shield": 2, "victory_points": 7}, {"ore": 4})
+        stage2=Stage({"shield": 2}, {"clay": 3}),
+        stage3=Stage({"victory_points": 7}, {"ore": 4})
     )
 
-    lighthouse_of_alexandria = Wonder(
-        "Lighthouse of Alexandria", "glass",
-        stage1=Stage({"choices": ["wood", "ore", "clay", "stone"], "victory_points": 3}, {"stone": 2}),
-        stage2=Stage({"victory_points": 4}, {"ore": 2}),
-        stage3=Stage({"victory_points": 7, "choices": ["cloth", "papyrus", "glass"]}, {"glass": 3})
+    rhodes_night = Wonder(
+        "Rhodo Night", "ore",
+        stage1=Stage({"victory_points": 3, "shield":1, "coin":3}, {"stone": 3}),
+        stage2=Stage({"victory_points": 4, "coin":4, "shield": 1}, {"ore": 4})
     )
 
-    lighthouse_of_alexandria_night = Wonder(
-        "Lighthouse of Alexandria Night", "glass",
-        stage1=Stage({"choices": ["wood", "ore", "clay", "stone"], "victory_points": 3}, {"stone": 2}),
-        stage2=Stage({"victory_points": 5, "choices": ["cloth", "papyrus", "glass"]}, {"ore": 2}),
-        stage3=Stage({"victory_points": 7, "choices": ["cloth", "papyrus", "glass", "ore", "stone", "wood", "clay"]}, {"glass": 3})
+    alexandria = Wonder(
+        "Alexandria", "glass",
+        stage1=Stage({"choices": [{"wood", "ore", "clay", "stone"}]}, {"clay": 2}),
+        stage2=Stage({"choices": [{"glass":1, "papyrus":1, "cloth":1}]}, {"ore": 3}),
+        stage3=Stage({"victory_points": 7}, {"wood": 4})
     )
 
-    temple_of_artemis_in_ephesus = Wonder(
-        "Temple of Artemis in Ephesus", "papyrus",
-        stage1=Stage({"victory_points": 3, "coins": 4}, {"stone": 2}),
-        stage2=Stage({"victory_points": 5, "coins": 4}, {"wood": 2}),
-        stage3=Stage({"victory_points": 7, "coins": 4}, {"papyrus": 3})
+    alexandria_night = Wonder(
+        "Alexandria Night", "glass",
+        stage1=Stage({"victory_points": 3}, {"stone": 2}),
+        stage2=Stage({"choices": [{"wood":1, "ore":1, "clay":1, "stone":1}]}, {"stone": 2}),
+        stage3=Stage({"victory_points": 7}, {"cloth": 1, "papyrus":1})
     )
 
-    temple_of_artemis_in_ephesus_night = Wonder(
-        "Temple of Artemis in Ephesus Night", "papyrus",
-        stage1=Stage({"victory_points": 2, "coins": 9}, {"stone": 2}),
-        stage2=Stage({"victory_points": 1, "coins": 4}, {"wood": 2}),
-        stage3=Stage({"victory_points": 5, "coins": 4}, {"papyrus": 3})
-    )
-
-    hanging_gardens_of_babylon = Wonder(
-        "Hanging Gardens of Babylon", "clay",
+    ephesus = Wonder(
+        "Ephesus", "papyrus",
         stage1=Stage({"victory_points": 3}, {"clay": 2}),
-        stage2=Stage({"victory_points": 7}, {"wood": 3}),
-        stage3=Stage({"choices": ["compass", "gear", "tablet"]}, {"clay": 4})
+        stage2=Stage({"coins": 9}, {"wood": 2}),
+        stage3=Stage({"victory_points": 7}, {"ore":2, "glass": 1})
     )
 
-    hanging_gardens_of_babylon_night = Wonder(
-        "Hanging Gardens of Babylon Night", "clay",
-        stage1=Stage({"victory_points": 3, "choices": ["compass", "tablet", "gear"]}, {"clay": 2}),
-        stage2=Stage({"victory_points": 4}, {"wood": 3}),
-        stage3=Stage({"choices": ["compass", "gear", "tablet"], "victory_points": 7}, {"clay": 4})
+    ephesus_night = Wonder(
+        "Ephesus Night", "papyrus",
+        stage1=Stage({"victory_points": 2, "coins":4}, {"stoe": 2}),
+        stage2=Stage({"coins": 4, "victory_points":3}, {"wood": 2}),
+        stage3=Stage({"victory_points": 4, "coins":4}, {"ore": 2, "cloth":1})
     )
 
-    statue_of_zeus_in_olympia = Wonder(
-        "Statue of Zeus in Olympia", "wood",
-        stage1=Stage({"victory_points": 3, "special": "one free build per age"}, {"wood": 2}),
-        stage2=Stage({"victory_points": 5}, {"stone": 2}),
-        stage3=Stage({"shield": 1, "victory_points": 7}, {"ore": 2})
-    )
-
-    statue_of_zeus_in_olympia_night = Wonder(
-        "Statue of Zeus in Olympia Night", "wood",
-        stage1=Stage({"victory_points": 3, "shield": 1}, {"wood": 2}),
-        stage2=Stage({"victory_points": 5, "special": "one free build per age"}, {"stone": 2}),
-        stage3=Stage({"shield": 1, "victory_points": 7}, {"ore": 2})
-    )
-
-    mausoleum_of_halicarnassus = Wonder(
-        "Mausoleum of Halicarnassus", "cloth",
+    babylon = Wonder(
+        "Babylon", "wood",
         stage1=Stage({"victory_points": 3}, {"clay": 2}),
-        stage2=Stage({"victory_points": 5}, {"wood": 3}),
-        stage3=Stage({"special": "build one discarded card for free"}, {"stone": 3})
+        stage2=Stage({"choices": [{"gear": 1, "tablet": 1, "compass": 1}]}, {"ore":2, "cloth":1}),
+        stage3=Stage({"victory_points":7}, {"wood": 4})
     )
 
-    mausoleum_of_halicarnassus_night = Wonder(
-        "Mausoleum of Halicarnassus Night", "cloth",
-        stage1=Stage({"special": "build one discarded card for free", "victory_points": 2}, {"clay": 2}),
-        stage2=Stage({"special": "build one discarded card for free", "victory_points": 1}, {"wood": 2}),
-        stage3=Stage({"special": "build one discarded card for free", "victory_points": 3}, {"stone": 3})
+    babylon_night = Wonder(
+        "Babylon Night", "wood",
+        stage1=Stage({"special":"play discarded"}, {"clay":2, "glass":1}),
+        stage2=Stage({"choices": [{"gear": 1, "tablet": 1, "compass": 1}]}, {"clay":3, "glass":1})
     )
 
-    pyramids_of_giza = Wonder(
-        "Pyramids of Giza", "stone",
+    olympia = Wonder(
+        "Olympia", "clay",
+        stage1=Stage({"victory_points": 3}, {"stone": 2}),
+        stage2=Stage({"special":"first age card each color for free"}, {"wood": 2}),
+        stage3=Stage({"victory_points": 7}, {"clay": 3})
+    )
+
+    olympia_night = Wonder(
+        "Olympia Night", "clay",
+        stage1=Stage({"victory_points": 2, "special": "construct the first age card in each age for free"}, {"ore": 2}),
+        stage2=Stage({"victory_points": 3, "special": "construct the last age card in each age for free"}, {"clay": 3}),
+        stage3=Stage({"victory_points": 5}, {"glass": 1, "papyrus":1, "cloth":1})
+    )
+
+    halicarnassus = Wonder(
+        "Halicarnassus", "cloth",
+        stage1=Stage({"victory_points": 3}, {"stone": 2}),
+        stage2=Stage({"special": "at the end of the turn take a card from the discard pile and construct it for free"}, {"glass": 1, "papyrus":1}),
+        stage3=Stage({"victory_points":7}, {"stone": 3})
+    )
+
+    halicarnassus_night = Wonder(
+        "Halicarnassus Night", "cloth",
+        stage1=Stage({"victory_points":2, "special": "at the end of the turn take a card from the discard pile and construct it for free"}, {"clay": 2}),
+        stage2=Stage({"victory_points":1, "special": "at the end of the turn take a card from the discard pile and construct it for free"}, {"glass": 1, "papyrus":1}),
+        stage3=Stage({"special": "at the end of the turn take a card from the discard pile and construct it for free"}, {"wood":3}),
+    )
+
+    gizah = Wonder(
+        "Gizah", "stone",
+        stage1=Stage({"victory_points": 3}, {"wood": 2}),
+        stage2=Stage({"victory_points": 5}, {"clay": 2, "cloth":1}),
+        stage3=Stage({"victory_points": 7}, {"stone": 4}),
+    )
+
+    gizah_night = Wonder(
+        "Gizah Night", "stone",
         stage1=Stage({"victory_points": 3}, {"wood": 2}),
         stage2=Stage({"victory_points": 5}, {"stone": 3}),
-        stage3=Stage({"victory_points": 7}, {"wood": 4}),
-        stage4=Stage({"victory_points": 9}, {"stone": 5})
+        stage3=Stage({"victory_points": 5}, {"clay": 3}),
+        stage4=Stage({"victory_points": 7}, {"stone": 4, "papyrus":1})
     )
 
-    pyramids_of_giza_night = Wonder(
-        "Pyramids of Giza Night", "stone",
-        stage1=Stage({"victory_points": 3}, {"wood": 2}),
-        stage2=Stage({"victory_points": 5}, {"stone": 3}),
-        stage3=Stage({"victory_points": 5}, {"wood": 4}),
-        stage4=Stage({"victory_points": 5}, {"stone": 5})
-    )
-
-    return [[colossus_of_rhodes,colossus_of_rhodes_night],
-       	[lighthouse_of_alexandria, lighthouse_of_alexandria_night],
-        [temple_of_artemis_in_ephesus, temple_of_artemis_in_ephesus_night],
-        [hanging_gardens_of_babylon, hanging_gardens_of_babylon_night],
-        [statue_of_zeus_in_olympia, statue_of_zeus_in_olympia_night],
-        [mausoleum_of_halicarnassus, mausoleum_of_halicarnassus_night],
-        [pyramids_of_giza, pyramids_of_giza_night]]
+    return [[rhodes,rhodes_night],
+       	[alexandria, alexandria_night],
+        [ephesus, ephesus_night],
+        [babylon, babylon_night],
+        [olympia, olympia_night],
+        [halicarnassus, halicarnassus_night],
+        [gizah, gizah_night]]

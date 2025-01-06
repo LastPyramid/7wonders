@@ -105,7 +105,7 @@ class Guild(Card):
         self.tablet = tablet
 
 class Wonder():
-    def __init__(self, name, benefit, stage1, stage2, stage3, stage4=None):
+    def __init__(self, name, benefit, stage1, stage2, stage3=None, stage4=None):
         self.name = name
         self.benefit = benefit
         self.stage1 = stage1
