@@ -7,10 +7,10 @@ class Game:
         self.age_III_cards = age_III_cards
         self.players = players
     
-    def pick_card(self, player, deck):
+    def pick_card(self, player, deck): #remove?
         pass
     
-    def start_game(self):
+    def start_game(self): #remove?
         pass
 
 class Resources:

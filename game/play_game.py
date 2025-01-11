@@ -10,8 +10,8 @@ def setup(game_id):
     # game = setup_game(number_of_players)
 
 
-def start(game_id, game): # start_game is async so you have to deal with that.
-    result = start_game(game_id, game)    
+async def start(game_id, game): # start_game is async so you have to deal with that.
+    result = await start_game(game_id, game)    
     if result == "failed":
         raise Exception("could not start game")
     

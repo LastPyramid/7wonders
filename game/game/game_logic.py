@@ -32,7 +32,7 @@ def setup_game(list_of_players):
 	game = Game(age_I_cards, age_II_cards, age_III_cards, players)
 	return game
 			
-def play(game):
+def play(game): # remove?
     pass
 
 		
