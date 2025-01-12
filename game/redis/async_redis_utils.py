@@ -18,9 +18,9 @@ async def get_players(game_id):
     lock = Lock(redis, f"lock:game:{game_id}", timeout=10)  # 10-second lock
     try:
         async with lock:
-            game_data = redis.hgetall(f"gameid:{game_id}")
-            number_of_players = game_data["players"]
-            return number_of_players
+            game_data = await redis.hgetall(f"game:{game_id}")
+            number_of_players = game_data["players"] # should be a list
+            return eval(number_of_players)
     except Exception as e:
         print(f"could not get players from game {game_id}, error: {e}")
 
@@ -74,10 +74,12 @@ async def lock_game(game_id):
     lock = Lock(redis, f"lock:game:{game_id}", timeout=10)
     try:
         async with lock:
+            print("yo")
             game_data = await redis.hgetall(f"game:{game_id}")
-            status = game_data["status"]
+            print(f"game_data: {game_data}")
+            status = game_data["state"]
             if status == "full" or status == "open":
-                await redis.hset(f"game:{game_id}", "status", "started")
+                await redis.hset(f"game:{game_id}", "state", "started")
                 return "ok"
             else:
                 return "failed"
@@ -101,7 +103,7 @@ async def get_player_channel_names(game_id):
                     print(f"Could not get websockets: {e}")
             return websockets
     except Exception as e:
-        raise print(f"Could not get websockets from game {game_id}")
+        raise print(f"Could not get websockets from game {game_id}, error: {e}")
         
 
 async def add_player_websocket_group(game_id, player_name, group_name, channel_name):
@@ -111,7 +113,7 @@ async def add_player_websocket_group(game_id, player_name, group_name, channel_n
 
 async def remove_player_from_channels_websocket_group(player_name):
     redis = await get_redis_connection()
-    channel_layer = await get_channel_layer()
+    channel_layer = get_channel_layer()
     channels_data = await redis.hgetall(f"websocket_info:{player_name}")
     channel_name = channels_data['channel_name']
     group_name = channels_data['group_name']
@@ -177,7 +179,7 @@ async def get_lobbies():
         lobbies.append({
             "game_id": key.split(":")[1],  # Extract game_id from key
             "players": players,
-            "status": lobby_data.get("state", "open"),  # Assuming a "status" field exists
+            "state": lobby_data.get("state", "open"),  # Assuming a "status" field exists
     })
     print(lobbies)
     return lobbies

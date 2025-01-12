@@ -49,10 +49,12 @@ class GameConsumer(AsyncWebsocketConsumer):
             await update_last_seen(self.game_id, self.player_name)
             print(f"Received heartbeat from {self.channel_name}")
 
-        if data.get("type") == "send_wonder":
+        if data.get("type") == "start":
+            print("starting game...")
             game_id = self.scope['url_route']['kwargs']['game_id']
-            result = lock_game(game_id)
+            result = await lock_game(game_id)
             if result == "failed":
+                print("failed")
                 await self.channel_layer.send(
                     self.channel_name,
                     {
@@ -60,14 +62,16 @@ class GameConsumer(AsyncWebsocketConsumer):
                         "message": "could not start the game, someone else probably initiated the process before you."
                     }
                 )
-            else:
-                channel_names = get_player_channel_names(game_id)
-                players = get_players(game_id)
+            elif result == "ok":
+                print("ok1")
+                channel_names = await get_player_channel_names(game_id)
+                players = await get_players(game_id)
                 if len(channel_names) != len(players):
                     print("amount of websockets connections should be equal to number of players") # add proper handeling later
                 game = setup_game(players)
-                insert_game_into_redis(game_id, game)
+                await insert_game_into_redis(game_id, game)
                 for player_name, channel_name in channel_names.items():
+                    print("in da loop")
                     wonder = None
                     for game_player in game.players:
                         if game_player.name == player_name:
@@ -77,19 +81,20 @@ class GameConsumer(AsyncWebsocketConsumer):
                     await self.channel_layer.send( # front-end should send back the choice
                     channel_name,
                         {
-                            "type":"setup",
-                            "wonder_choice":[wonder[0], wonder[1]]
+                            "type":"send_wonder",
+                            "message":[wonder[0].name, wonder[1].name]
                         }
                     )
         if data.get("type") == "pick_wonder":
-            pass
+            print("I'm speaking from the pick_wonder section")
+
         if data.get("type") == "setup":
             pass
 
         # Broadcast message to group
         if data.get("type") == "message":
-            await self.channel_layer.group_send(
-            self.group_name,
+            await self.channel_layer.group_send(# när man kör group_send, så kör man en funktion för alla
+            self.group_name,                    # som prenumererar till gruppen
             {
                 "type": "chat_message",
                 "message": data['message'],
@@ -100,19 +105,24 @@ class GameConsumer(AsyncWebsocketConsumer):
         if data.get("start_game"):
             pass
 
-    async def chat_message(self, event): # tar emot meddelanden från websocket-gruppen, backend, group_send, med "type" "chat_message"
+    async def send_wonder(self, event):
+        setup = event['message']
+        await self.send(text_data=json.dumps({"setup":setup}))
+
+
+    async def chat_message(self, event):
         print(event)
         message = event["message"]
         user = event["user"]
         print("username is: ", user)
         await self.send(text_data=json.dumps({"message": message, "user":user}))
 
+
 class LandingPageConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.group_name = "games_broadcast"
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
-        # here contact redis and broadcast all games that are available
 
     async def disconnect(self, close_code):
         pass
