@@ -294,13 +294,11 @@ class MilitaryStructure(Card):
     def __init__(self, age, color, number_of_players, name, cost=None, symbol=None, resource_choices=None, shield=0):
         super().__init__(age, color, number_of_players, name, cost, symbol, resource_choices)
         self.shield = shield
+
     def to_dict(self):
         data = super().to_dict()
         data.update({
-            "gold": self.gold,
-            "west_trading": self.west_trading,
-            "east_trading": self.east_trading,
-            "marketplace": self.marketplace,
+            "shield": self.shield,
         })
         return data
 
@@ -334,7 +332,12 @@ class Guild(Card):
     def to_dict(self):
         data = super().to_dict()
         data.update({
-            "shield": self.shield,
+            "location": self.location,
+            "activity": self.activity,
+            "victory_points": self.victory_points,
+            "compass": self.compass,
+            "gear": self.gear,
+            "tablet": self.tablet,
         })
         return data
 

@@ -43,8 +43,11 @@ class GameConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data): # tar emot meddelanden från 1 websocket, frontend
         data = json.loads(text_data)
 
+        if data.get("type") == "state": # should send game-state back, like what?
+            pass                        # cards, age? wonder, well see...
+
         if data.get("type") == "heartbeat":
-            self.game_id = self.scope['url_route']['kwargs']['game_id'] # do we really need self.game_id?
+            self.game_id = self.scope['url_route']['kwargs']['game_id'] # do we really need self.game_id? dont think so because its set in connet
             self.player_name = self.scope['url_route']['kwargs']['player_name']
             await update_last_seen(self.game_id, self.player_name)
             print(f"Received heartbeat from {self.channel_name}")
@@ -71,7 +74,6 @@ class GameConsumer(AsyncWebsocketConsumer):
                 game = setup_game(players)
                 await insert_game_into_redis(game_id, game)
                 for player_name, channel_name in channel_names.items():
-                    print("in da loop")
                     wonder = None
                     for game_player in game.players:
                         if game_player.name == player_name:

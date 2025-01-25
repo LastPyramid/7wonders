@@ -2,8 +2,8 @@ import aioredis
 from aioredis.lock import Lock
 from time import time
 from channels.layers import get_channel_layer
+from ..game.models import Game
 from ..game.game_logic import setup_game
-import pickle
 
 redis = None  # Global Redis connection object
 
@@ -35,7 +35,7 @@ async def create_game_in_redis():
     game_data = {
         "game_id": str(game_id),
         "players": "[]",
-        "state": "open",  # Can be 'open', 'started', 'full'
+        "state": "open",  # Can be 'open', 'full', 'picking', age1, age2,age3 ?
         "group_name": f"lobby_{game_id}",
     }
 
@@ -79,7 +79,7 @@ async def lock_game(game_id):
             print(f"game_data: {game_data}")
             status = game_data["state"]
             if status == "full" or status == "open":
-                await redis.hset(f"game:{game_id}", "state", "started")
+                await redis.hset(f"game:{game_id}", "state", "picking")
                 return "ok"
             else:
                 return "failed"
@@ -150,7 +150,8 @@ async def insert_game_into_redis(game_id, game):
     lock = Lock(redis, f"lock:game:{game_id}", timeout=10)
     try:
         async with lock:
-            serialized_game = pickle.dumps(game)
+            serialized_game = Game.to_dict(game)
+            print(f"THIS IS HOW THE GAME LOOKS IN JSON FORMAT REMOVE THIS LATER {serialized_game}")
             redis.hset(f"game:{game_id}", "game", serialized_game)
     except Exception as e:
         print(f"Could not insert game into redis error: {e}")
@@ -161,7 +162,7 @@ async def get_game_from_redis(game_id):
     try:
         async with lock:
             serialized_game = await redis.hget(f"game:{game_id}", "game")
-            game = pickle.loads(serialized_game)
+            game = Game.from_dict(serialized_game)
             return game
     except Exception as e:
         print("could not get game from redis")
