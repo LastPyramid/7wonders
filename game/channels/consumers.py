@@ -1,6 +1,6 @@
 from channels.generic.websocket import AsyncWebsocketConsumer
 import json
-from ..redis.async_redis_utils import add_player_to_game, remove_player_from_game, update_last_seen, add_player_websocket_group, get_player_channel_names, get_players, lock_game, insert_game_into_redis
+from ..redis.async_redis_utils import add_player_to_game, remove_player_from_game, update_last_seen, add_player_websocket_group, get_player_channel_names, get_players, lock_game, insert_game_into_redis, pick_wonder, check_if_everyone_has_picked_a_wonder
 from ..game.game_logic import setup_game
 
 class GameConsumer(AsyncWebsocketConsumer):
@@ -88,6 +88,29 @@ class GameConsumer(AsyncWebsocketConsumer):
                         }
                     )
         if data.get("type") == "pick_wonder":
+            wonder = data.get("wonder")
+            await pick_wonder(self.game_id, self.player_name, wonder)
+            people_have_picked = await check_if_everyone_has_picked_a_wonder(self.game_id)
+            if people_have_picked:
+                game = people_have_picked
+                channel_names = await get_player_channel_names(self.game_id)
+                for player_name, channel_name in channel_names.items():
+                    cards = []
+                    for player in game.players:
+                        if player.name == player_name:
+                            for card in player.cards_to_pick_from:
+                                cards.append(card.to_dict())
+                    await self.channel_layer.send(
+                    channel_name,
+                        {
+                            "type":"age_I_cards",
+                            "message":cards
+                        }
+                    )
+                # need to send shit to the front end
+                print("everyone has picked now")
+            else:
+                print("apperently not everyone has picked")
             print("I'm speaking from the pick_wonder section")
 
         if data.get("type") == "setup":
@@ -110,6 +133,10 @@ class GameConsumer(AsyncWebsocketConsumer):
     async def send_wonder(self, event):
         setup = event['message']
         await self.send(text_data=json.dumps({"setup":setup}))
+
+    async def age_I_cards(self, event):
+        cards = event['message']
+        await self.send(text_data=json.dumps({"age_I_cards":cards}))
 
 
     async def chat_message(self, event):

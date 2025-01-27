@@ -2,8 +2,8 @@ import aioredis
 from aioredis.lock import Lock
 from time import time
 from channels.layers import get_channel_layer
-from ..game.models import Game
-from ..game.game_logic import setup_game
+from ..game.models import Game, Wonder
+import traceback
 
 redis = None  # Global Redis connection object
 
@@ -23,9 +23,9 @@ async def get_players(game_id):
             return eval(number_of_players)
     except Exception as e:
         print(f"could not get players from game {game_id}, error: {e}")
+        traceback.print_exc()
 
 async def create_game_in_redis():
-    print("Creating a game in redis!")
     redis = await get_redis_connection()
 
     # Generate unique game ID (atomic increment)
@@ -44,13 +44,11 @@ async def create_game_in_redis():
     return game_id
 
 async def update_last_seen(game_id, player_name):
-    print("Updating last seen")
     redis = await get_redis_connection()
     now = time()
     await redis.hset(f"heartbeat:{game_id}", player_name, now)
 
 async def add_player_to_game(player_name, game_id):
-    print("Trying to add player to game....")
     redis = await get_redis_connection()
     lock = Lock(redis, f"lock:game:{game_id}", timeout=10)  # why is the lock lock:game should it not be game: only?
     try:
@@ -66,7 +64,8 @@ async def add_player_to_game(player_name, game_id):
             else:
                 return "full"
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"add_player_to_game fails, Error: {e}")
+        traceback.print_exc()
     return "success"
 
 async def lock_game(game_id):
@@ -74,9 +73,7 @@ async def lock_game(game_id):
     lock = Lock(redis, f"lock:game:{game_id}", timeout=10)
     try:
         async with lock:
-            print("yo")
             game_data = await redis.hgetall(f"game:{game_id}")
-            print(f"game_data: {game_data}")
             status = game_data["state"]
             if status == "full" or status == "open":
                 await redis.hset(f"game:{game_id}", "state", "picking")
@@ -85,7 +82,8 @@ async def lock_game(game_id):
                 return "failed"
 
     except Exception as e:
-        print(f"error {e}")
+        print(f"error while trying to lock_game, Error: {e}")
+        traceback.print_exc()
 
 async def get_player_channel_names(game_id):
     redis = await get_redis_connection()
@@ -101,9 +99,11 @@ async def get_player_channel_names(game_id):
                     websockets[player] = player_websocket_channel_name
                 except Exception as e:
                     print(f"Could not get websockets: {e}")
+                    traceback.print_exc()
             return websockets
     except Exception as e:
-        raise print(f"Could not get websockets from game {game_id}, error: {e}")
+        print(f"Could not get websockets from game {game_id}, error: {e}")
+        traceback.print_exc()
         
 
 async def add_player_websocket_group(game_id, player_name, group_name, channel_name):
@@ -143,29 +143,72 @@ async def remove_player_from_game(player_name, game_id):
                 await redis.hset(f"game:{game_id}", "state", "open")
     except Exception as e:
         print(f"Could not remove player:{player_name} {e}")
+        traceback.print_exc()
     return "ok"
 
-async def insert_game_into_redis(game_id, game):
+async def insert_game_into_redis(game_id, game, lock=None):
     redis = await get_redis_connection()
-    lock = Lock(redis, f"lock:game:{game_id}", timeout=10)
-    try:
+    if not lock:
+        print("had to create a lock in insert_game_into_redis")
+        lock = Lock(redis, f"lock:game:{game_id}", timeout=10)
         async with lock:
-            serialized_game = Game.to_dict(game)
-            print(f"THIS IS HOW THE GAME LOOKS IN JSON FORMAT REMOVE THIS LATER {serialized_game}")
-            redis.hset(f"game:{game_id}", "game", serialized_game)
+            serialized_game = str(Game.to_dict(game))
+            await redis.hset(f"game:{game_id}", "game", serialized_game)
+    try:
+        serialized_game = str(Game.to_dict(game))
+        await redis.hset(f"game:{game_id}", "game", serialized_game)
     except Exception as e:
         print(f"Could not insert game into redis error: {e}")
-            
-async def get_game_from_redis(game_id):
+        traceback.print_exc()
+
+async def pick_wonder(game_id, player_name, wonder_name):
     redis = await get_redis_connection()
     lock = Lock(redis, f"lock:game:{game_id}", timeout=10)
     try:
         async with lock:
-            serialized_game = await redis.hget(f"game:{game_id}", "game")
-            game = Game.from_dict(serialized_game)
+            print("PICK WONDER has the LOCK")
+            game = await get_game_from_redis(game_id, lock)
+            for player in game.players:
+                if player.name == player_name:
+                    for w in player.wonder:
+                        if wonder_name == w.name:
+                            player.wonder = w # exception if this does not happen?
+            await insert_game_into_redis(game_id, game, lock)
+    except Exception as e:
+        print(f"Could not alter the game and insert pick_wonder, error: {e}")
+        traceback.print_exc()
+
+async def check_if_everyone_has_picked_a_wonder(game_id):
+    redis = await get_redis_connection()
+    lock = Lock(redis, f"lock:game:{game_id}", timeout=30)
+    print("CHECK_IF_EVERYONE_HAS_PICKED has THE LOCK")
+    try:
+        async with lock:
+            game = await get_game_from_redis(game_id, lock)
+            for player in game.players:
+                if not isinstance(player.wonder, Wonder):
+                    return False
+                if player.wonder.name not in ["Rhodos_day.png", "Rhodos_night.png", "Alexandria_day.png", "Alexandria_night.png", "Ephesos_day.png", "Ephesos_night.png", "Babylon_day.png", "Babylon_night.png", "Olympia_day.png", "Olympia_night.png", "Halikarnassos_day.png", "Halikarnassos_night.png", "Gizah_day.png", "Gizah_night.png"]:
+                    return False
+            await setup_player_resources(game) # Ready to start
             return game
     except Exception as e:
-        print("could not get game from redis")
+        print(f"could not check if everyone has picked a wonder, error: {e}")
+        traceback.print_exc()
+
+async def get_game_from_redis(game_id, lock):
+    if lock == None:
+        raise Exception("lock is None in get_game_from_redis")
+    print("GET_GAME_FROM_REDIS has the LOCK")
+    redis = await get_redis_connection()
+    try:
+        string_game = await redis.hget(f"game:{game_id}", "game")
+        dict_game = eval(string_game)
+        deserialized_game = Game.from_dict(dict_game)
+        return deserialized_game
+    except Exception as e:
+        print(f"could not get game from redis, error: {e}")
+        traceback.print_exc()
 
 async def get_lobbies():
     redis = await get_redis_connection()
@@ -182,55 +225,38 @@ async def get_lobbies():
             "players": players,
             "state": lobby_data.get("state", "open"),  # Assuming a "status" field exists
     })
-    print(lobbies)
     return lobbies
 
-async def setup_player_resources(game_id, game):
-    redis = await get_redis_connection()
-    game_data = await redis.hgetall(f"game:{game_id}")
-    player_names = eval(game_data["players"])
-    for player, player_name in zip(game.players, player_names):
-        if player.wonder == "Colossus of Rhodes": 
-            redis.hset(f"game:{game_id}:{player_name}", "ore", "1")
-            redis.hset(f"game:{game_id}:{player_name}", "wonder", "Colossus of Rhodes")
-        elif player.wonder == "Colossus of Rhodes Night":
-            redis.hset(f"game:{game_id}:{player_name}", "ore", "1")
-            redis.hset(f"game:{game_id}:{player_name}", "wonder", "Colossus of Rhodes Night")
-        elif player.wonder == "Lighthouse of Alexandria":
-            redis.hset(f"game:{game_id}:{player_name}", "glass", "1")
-            redis.hset(f"game:{game_id}:{player_name}", "wonder", "Lighthouse of Alexandria")
-        elif player.wonder == "Lighthouse of Alexandria Night":
-            redis.hset(f"game:{game_id}:{player_name}", "glass", "1")
-            redis.hset(f"game:{game_id}:{player_name}", "wonder", "Lighthouse of Alexandria Night")
-        elif player.wonder == "Temple of Artemis in Ephesus":
-            redis.hset(f"game:{game_id}:{player_name}", "papyrus", "1")
-            redis.hset(f"game:{game_id}:{player_name}", "wonder", "Temple of Artemis in Ephesus")
-        elif player.wonder == "Temple of Artemis in Ephesus Night":
-            redis.hset(f"game:{game_id}:{player_name}", "papyrus", "1")
-            redis.hset(f"game:{game_id}:{player_name}", "wonder", "Temple of Artemis in Ephesus Night")
-        elif player.wonder == "Hanging Gardens of Babylon":
-            redis.hset(f"game:{game_id}:{player_name}", "clay", "1")
-            redis.hset(f"game:{game_id}:{player_name}", "wonder", "Hanging Gardens of Babylon")
-        elif player.wonder == "Hanging Gardens of Babylon Night":
-            redis.hset(f"game:{game_id}:{player_name}", "clay", "1")
-            redis.hset(f"game:{game_id}:{player_name}", "wonder", "Hanging Gardens of Babylon Night")
-        elif player.wonder == "Statue of Zeus in Olympia":
-            redis.hset(f"game:{game_id}:{player_name}", "wood", "1")
-            redis.hset(f"game:{game_id}:{player_name}", "wonder", "Statue of Zeus in Olympia")
-        elif player.wonder == "Statue of Zeus in Olympia Night":
-            redis.hset(f"game:{game_id}:{player_name}", "wood", "1")
-            redis.hset(f"game:{game_id}:{player_name}", "wonder", "Statue of Zeus in Olympia Night")
-        elif player.wonder == "Mausoleum of Halicarnassus":
-            redis.hset(f"game:{game_id}:{player_name}", "cloth", "1")
-            redis.hset(f"game:{game_id}:{player_name}", "wonder", "Mausoleum of Halicarnassus")
-        elif player.wonder == "Mausoleum of Halicarnassus Night":
-            redis.hset(f"game:{game_id}:{player_name}", "cloth", "1")
-            redis.hset(f"game:{game_id}:{player_name}", "wonder", "Mausoleum of Halicarnassus Night")
-        elif player.wonder == "Pyramids of Giza":
-            redis.hset(f"game:{game_id}:{player_name}", "stone", "1")
-            redis.hset(f"game:{game_id}:{player_name}", "wonder", "Pyramids of Giza")
-        elif player.wonder == "Pyramids of Giza Night":
-            redis.hset(f"game:{game_id}:{player_name}", "stone", "1")
-            redis.hset(f"game:{game_id}:{player_name}", "wonder", "Pyramids of Giza Night")
+async def setup_player_resources(game):
+    players = game.players
+    for player in players:
+        if player.wonder.name == "Rhodos_day.png": 
+            player.resources.ore += 1
+        elif player.wonder.name == "Rhodos_night.png":
+            player.resources.ore += 1
+        elif player.wonder.name == "Alexandria_day.png":
+            player.resources.glass += 1
+        elif player.wonder.name == "Alexandria_night.png":
+            player.resources.glass += 1
+        elif player.wonder.name == "Ephesos_day.png":
+            player.resources.papyrus += 1
+        elif player.wonder.name == "Ephesos_night.png":
+            player.resources.papyrus += 1
+        elif player.wonder.name == "Babylon_day.png":
+            player.resources.wood += 1
+        elif player.wonder.name == "Babylon_night.png":
+            player.resources.wood += 1
+        elif player.wonder.name == "Olympia_day.png":
+            player.resources.clay += 1
+        elif player.wonder.name == "Olympia_night.png":
+            player.resources.clay += 1
+        elif player.wonder.name == "Halikarnassos_day.png":
+            player.resources.cloth += 1
+        elif player.wonder.name == "Halikarnassos_night.png":
+            player.resources.cloth += 1
+        elif player.wonder.name == "Gizah_day.png":
+            player.resources.stone += 1
+        elif player.wonder.name == "Gizah_night.png":
+            player.resources.stone += 1
         else:
             raise Exception("Error during resource setup")

@@ -63,7 +63,7 @@ class Player():
         #self.number = number
         self.wonder = wonder
         self.name = name
-        self.resources = {}
+        self.resources = Resources() # This will not be shared right?
         self.cards = []
         self.cards_to_pick_from = []
         self.free_construction = []
@@ -78,11 +78,20 @@ class Player():
         self.conflict_token = 0
         self.victory_points = 0
         self.defeat_token = 0
+
     def to_dict(self):
+        wonder = None
+        if isinstance(self.wonder, list):
+            wonder = [wonder.to_dict() for wonder in self.wonder]
+        elif isinstance(self.wonder, Wonder):
+            wonder = self.wonder.to_dict()
+        else:
+            raise Exception("wonder in the game is neither a list nor a wonder objcet")
+
         return {
-            "wonder": self.wonder,
+            "wonder": wonder,
             "name": self.name,
-            "resources": {key: value for key, value in self.resources.items()},
+            "resources": self.resources.to_dict(),
             "cards": [card.to_dict() for card in self.cards],
             "cards_to_pick_from": [card.to_dict() for card in self.cards_to_pick_from],
             "free_construction": [construction.to_dict() for construction in self.free_construction],
@@ -101,11 +110,16 @@ class Player():
 
     @classmethod
     def from_dict(cls, data):
+        wonder = data["wonder"]
+        if isinstance(wonder, list):
+            wonder = [Wonder.from_dict(w) for w in wonder]
+        else:
+            wonder = Wonder.from_dict(wonder)
         player = cls(
-            wonder=data["wonder"],
+            wonder=wonder,
             name=data["name"],
         )
-        player.resources = data.get("resources", {})
+        player.resources = Resources.from_dict(data.get("resources"))
         player.cards = [Card.from_dict(card) for card in data.get("cards", [])]
         player.cards_to_pick_from = [Card.from_dict(card) for card in data.get("cards_to_pick_from", [])]
         player.free_construction = [Card.from_dict(construction) for construction in data.get("free_construction", [])]
@@ -273,13 +287,13 @@ class ScientificStructure(Card):
         )
 
     def to_dict(self):
-        return {
+        data = super().to_dict()
+        data.update({
             "compass": self.compass,
             "gear": self.gear,
             "tablet": self.tablet,
-        }
-
-    
+        })
+        return data
 
 class CommercialStructure(Card):
     def __init__(self, age, color, number_of_players, name, cost=None, symbol=None, resource_choices=None, west_trading=None, east_trading=None, marketplace=None, gold=None):
@@ -288,8 +302,27 @@ class CommercialStructure(Card):
         self.west_trading = west_trading
         self.east_trading = east_trading
         self.marketplace = marketplace
-    
 
+    def to_dict(self):
+        data = super().to_dict()
+        data.update({
+            "gold":self.gold,
+            "west_trading":self.west_trading,
+            "east_trading":self.east_trading,
+            "marketplace":self.marketplace
+        })
+        return data
+
+    @classmethod
+    def from_dict(cls, data):
+        card = super().from_dict(data)
+        return cls(
+            gold=card.gold,
+            west_trading=card.west_trading,
+            east_trading=card.east_trading,
+            marketplace=card.marketplace
+        )
+    
 class MilitaryStructure(Card):
     def __init__(self, age, color, number_of_players, name, cost=None, symbol=None, resource_choices=None, shield=0):
         super().__init__(age, color, number_of_players, name, cost, symbol, resource_choices)
@@ -352,8 +385,14 @@ class Guild(Card):
             cost=card.cost,
             symbol=card.symbol,
             resource_choices=card.resource_choices,
-            shield=data.get("shield", 0),
+            location=data.get("location"),
+            activity=data.get("activity"),
+            victory_points=data.get("victory_points"),
+            compass=data.get("compass"),
+            gear=data.get("gear"),
+            tablet=data.get("tablet"),
         )
+
 
 
 class Wonder():
@@ -374,14 +413,15 @@ class Wonder():
             "stage4": self.stage4.to_dict() if self.stage4 else None,
         }
 
+    @classmethod
     def from_dict(cls, data):
-        stage1 = Stage.from_dict(data["stage1"]) if data.get("stage1") else None
-        stage2 = Stage.from_dict(data["stage2"]) if data.get("stage2") else None
-        stage3 = Stage.from_dict(data["stage3"]) if data.get("stage3") else None
-        stage4 = Stage.from_dict(data["stage4"]) if data.get("stage4") else None
+        stage1 = Stage.from_dict(data["stage1"]) if "stage1" in data else None # remove if here ?
+        stage2 = Stage.from_dict(data["stage2"]) if "stage2" in data else None # remove if here ?
+        stage3 = Stage.from_dict(data["stage3"]) if "stage3" in data and data["stage3"] != None else None
+        stage4 = Stage.from_dict(data["stage4"]) if "stage4" in data and data["stage4"] != None else None
         return cls(
             name = data["name"],
-            benefit = data["beneift"],
+            benefit = data["benefit"],
             stage1 = stage1,
             stage2 = stage2,
             stage3 = stage3,
