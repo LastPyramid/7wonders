@@ -196,6 +196,36 @@ async def check_if_everyone_has_picked_a_wonder(game_id):
         print(f"could not check if everyone has picked a wonder, error: {e}")
         traceback.print_exc()
 
+async def pick_card(game_id, card_name, player_name):
+    redis = await get_redis_connection()
+    lock = Lock(redis, f"lock:game:{game_id}", timeout=30)
+    try:
+        async with lock:
+            game = await get_game_from_redis(game_id, lock)
+            card_is_added = add_card_to_player(game, player_name, card_name)
+            if card_is_added:
+                print(f"{card_name} was added to the players deck!")
+            else:
+                print("something went wrong adding card to the players deck")
+            await insert_game_into_redis(game)
+
+    except Exception as e:
+        print(f"Could not pick a card, error: {e}")
+        traceback.print_exc()
+
+def add_card_to_player(game, player_name, card_name): # ok
+    player = get_player_from_game(game, player_name)
+    for i, card in enumerate(player.card_to_pick_from):
+        if card.name == card_name:
+            player.cards.append(player.card_to_pick_from.pop(i))
+            return True
+    return False
+
+def get_player_from_game(game, name):
+    for player in game.players:
+        if player.name == name:
+            return player
+
 async def get_game_from_redis(game_id, lock):
     if lock == None:
         raise Exception("lock is None in get_game_from_redis")

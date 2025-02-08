@@ -1,6 +1,6 @@
 from channels.generic.websocket import AsyncWebsocketConsumer
 import json
-from ..redis.async_redis_utils import add_player_to_game, remove_player_from_game, update_last_seen, add_player_websocket_group, get_player_channel_names, get_players, lock_game, insert_game_into_redis, pick_wonder, check_if_everyone_has_picked_a_wonder
+from ..redis.async_redis_utils import add_player_to_game, remove_player_from_game, update_last_seen, add_player_websocket_group, get_player_channel_names, get_players, lock_game, insert_game_into_redis, pick_wonder, check_if_everyone_has_picked_a_wonder, pick_card
 from ..game.game_logic import setup_game
 
 class GameConsumer(AsyncWebsocketConsumer):
@@ -115,6 +115,11 @@ class GameConsumer(AsyncWebsocketConsumer):
 
         if data.get("type") == "setup":
             pass
+
+        if data.get("type") == "pick":
+            card_name = data.get("name")
+            await pick_card(self.game_id, card_name, self.player_name)
+            # need to check if everyone has picked here
 
         # Broadcast message to group
         if data.get("type") == "message":
