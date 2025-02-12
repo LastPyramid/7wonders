@@ -213,6 +213,20 @@ async def pick_card(game_id, card_name, player_name):
         print(f"Could not pick a card, error: {e}")
         traceback.print_exc()
 
+async def get_player_resources(game_id, player_name):
+    redis = await get_redis_connection()
+    lock = Lock(redis, f"lock:game:{game_id}", timeout=30)
+    try:
+        async with lock:
+            game = await get_game_from_redis(game_id, lock)
+            player = get_player_from_game(game, player_name)
+            resources = player.resources
+            await insert_game_into_redis(game)
+            return resources
+    except Exception as e:
+        print(f"Could not pick a card, error: {e}")
+        traceback.print_exc()
+
 def add_card_to_player(game, player_name, card_name): # ok
     player = get_player_from_game(game, player_name)
     for i, card in enumerate(player.card_to_pick_from):
