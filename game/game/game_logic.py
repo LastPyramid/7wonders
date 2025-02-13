@@ -31,9 +31,18 @@ def setup_game(list_of_players):
 
 	game = Game(age_I_cards, age_II_cards, age_III_cards, players)
 	return game
-			
-def play(game): # remove?
-    pass
+
+def start_age_II(game):
+	for player in game.players:
+		player.cards_to_pick_from = []
+		for card in range(7):
+			player.cards_to_pick_from.append(game.age_II_cards.pop())
+
+def start_age_III(game):
+	for player in game.players:
+		player.cards_to_pick_from = []
+		for card in range(7):
+			player.cards_to_pick_from.append(game.age_III_cards.pop())
 
 		
 		

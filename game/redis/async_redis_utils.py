@@ -3,6 +3,7 @@ from aioredis.lock import Lock
 from time import time
 from channels.layers import get_channel_layer
 from ..game.models import Game, Wonder
+from ..game.game_logic import start_age_II, start_age_III
 import traceback
 
 redis = None  # Global Redis connection object
@@ -191,10 +192,28 @@ async def check_if_everyone_has_picked_a_wonder(game_id):
                 if player.wonder.name not in ["Rhodos_day.png", "Rhodos_night.png", "Alexandria_day.png", "Alexandria_night.png", "Ephesos_day.png", "Ephesos_night.png", "Babylon_day.png", "Babylon_night.png", "Olympia_day.png", "Olympia_night.png", "Halikarnassos_day.png", "Halikarnassos_night.png", "Gizah_day.png", "Gizah_night.png"]:
                     return False
             await setup_player_resources(game) # Ready to start
+            await insert_game_into_redis(game_id, game, lock)
             return game
     except Exception as e:
         print(f"could not check if everyone has picked a wonder, error: {e}")
         traceback.print_exc()
+
+async def check_if_everyone_has_picked_a_card(game_id):
+    redis = await get_redis_connection()
+    lock = Lock(redis, f"lock:game:{game_id}", timeout=30)
+    try:
+        async with lock:
+            game = await get_game_from_redis(game_id, lock)
+            number_of_unpicked_cards = 7 - game.turn
+            for player in game.players:
+                if number_of_unpicked_cards != player.card_to_pick_from:
+                    return False
+            return True
+    except Exception as e:
+        print(f"could not check if everyone has picked a CARD, error: {e}")
+        traceback.print_exc()
+
+
 
 async def pick_card(game_id, card_name, player_name):
     redis = await get_redis_connection()
@@ -270,6 +289,72 @@ async def get_lobbies():
             "state": lobby_data.get("state", "open"),  # Assuming a "status" field exists
     })
     return lobbies
+
+async def setup_next_age(game_id):
+    redis = await get_redis_connection()
+    lock = Lock(redis, f"lock:game:{game_id}", timeout=30)
+    try:
+        async with lock:
+            game = await get_game_from_redis(game_id, lock)
+            game.age += 1
+            game.turn = 1
+            if game.age == 1:
+                pass #setup first turn here as well?
+            elif game.age == 2:
+                start_age_II(game)
+            elif game.age == 3:
+                start_age_III(game)
+            elif game.age == 4:
+                pass # game has ended?
+            else:
+                raise Exception("AGE CAN NOT BE SOMETHING ELSE OTHER THAN 1, 2, 3")
+            await insert_game_into_redis(game_id, game, lock)
+            return game
+            
+    except Exception as e:
+        print(f"could not set up new age, error: {e}")
+        traceback.print_exc()
+
+async def setup_next_turn(game_id):
+    redis = await get_redis_connection()
+    lock = Lock(redis, f"lock:game:{game_id}", timeout=30)
+    try:
+        async with lock:
+            game = await get_game_from_redis(game_id, lock)
+            game.turn += 1
+            if game.age % 2 != 0:
+                previous_players_cards = []
+                temp_cards = []
+                for i in range(len(game.players)-1, -1, -1):
+                    temp_cards = game.players[i].cards
+                    game.players[i].cards = previous_players_cards
+                    previous_players_cards = temp_cards
+                game.players[len(game.players)].cards = previous_players_cards
+            else:
+                previous_players_cards = []
+                temp_cards = []
+                for i in range(len(game.players)):
+                    temp_cards = game.players[i].cards
+                    game.players[i].cards = previous_players_cards
+                    previous_players_cards = temp_cards
+                game.players[0].cards = previous_players_cards
+            await insert_game_into_redis(game_id, game, lock)
+            return game
+    except Exception as e:
+        print(f"could not set up new age, error: {e}")
+        traceback.print_exc()
+
+def add_card_to_player(game, player_name, card_name): # ok
+    player = get_player_from_game(game, player_name)
+    for i, card in enumerate(player.card_to_pick_from):
+        if card.name == card_name:
+            player.cards.append(player.card_to_pick_from.pop(i))
+            return True
+    return False
+
+def get_player_from_game(game, name):
+
+    pass
 
 async def setup_player_resources(game):
     players = game.players
