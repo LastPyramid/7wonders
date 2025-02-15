@@ -212,8 +212,6 @@ async def check_if_everyone_has_picked_a_card(game_id):
         print(f"could not check if everyone has picked a CARD, error: {e}")
         traceback.print_exc()
 
-
-
 async def pick_card(game_id, card_name, player_name):
     redis = await get_redis_connection()
     lock = Lock(redis, f"lock:game:{game_id}", timeout=30)
@@ -221,11 +219,13 @@ async def pick_card(game_id, card_name, player_name):
         async with lock:
             game = await get_game_from_redis(game_id, lock)
             card_is_added = add_card_to_player(game, player_name, card_name)
+            await insert_game_into_redis(game)
             if card_is_added:
                 print(f"{card_name} was added to the players deck!")
+                return True
             else:
                 print("something went wrong adding card to the players deck")
-            await insert_game_into_redis(game)
+                return False
 
     except Exception as e:
         print(f"Could not pick a card, error: {e}")
@@ -244,13 +244,28 @@ async def get_player_resources(game_id, player_name):
     except Exception as e:
         print(f"Could not pick a card, error: {e}")
         traceback.print_exc()
+        
+def has_resources(player):
+    pass
 
-def add_card_to_player(game, player_name, card_name): # ok
+async def player_can_pick_card(card, player):
+    if card.symbol in player.symbols:
+        return True
+    for resource, amount in card.cost.items():
+        if resource in player.resources:
+            if player.resources[resource] < amount:
+                return False
+        else:
+            return False
+    return True
+
+def add_card_to_player(game, player_name, card_name):
     player = get_player_from_game(game, player_name)
     for i, card in enumerate(player.card_to_pick_from):
         if card.name == card_name:
-            player.cards.append(player.card_to_pick_from.pop(i))
-            return True
+            if player_can_pick_card(card, player):
+                player.cards.append(player.card_to_pick_from.pop(i))
+                return True
     return False
 
 def get_player_from_game(game, name):
@@ -364,18 +379,6 @@ def calculate_millitary_conflict_points(left_player, player, right_player, age):
         player.victory_token += points_per_win
     elif player.millitary_strength < right_player.millitary_strength:
         player.defeat_token += 1
-
-
-
-
-
-def add_card_to_player(game, player_name, card_name): # ok
-    player = get_player_from_game(game, player_name)
-    for i, card in enumerate(player.card_to_pick_from):
-        if card.name == card_name:
-            player.cards.append(player.card_to_pick_from.pop(i))
-            return True
-    return False
 
 def get_player_from_game(game, name):
 

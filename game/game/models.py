@@ -34,6 +34,7 @@ class Resources:
         self.glass = glass
         self.papyrus = papyrus
         self.cloth = cloth
+        self.mixed_resources = []
 
     def to_dict(self):
         return {
@@ -44,6 +45,7 @@ class Resources:
             "glass": self.glass,
             "papyrus": self.papyrus,
             "cloth": self.cloth,
+            "mixed_resources": self.mixed_resources,
         }
 
     @classmethod
@@ -56,6 +58,7 @@ class Resources:
             glass=data.get("glass", 0),
             papyrus=data.get("papyrus", 0),
             cloth=data.get("cloth", 0),
+            mixed_resources=data.get("mixed_resources"),
         )
 
 class Player():
@@ -63,7 +66,7 @@ class Player():
         #self.number = number
         self.wonder = wonder
         self.name = name
-        self.resources = Resources() # This will not be shared right?
+        self.resources = {"ore":0, "stone":0, "wood":0, "clay":0,"papyrus":0, "cloth":0} # CHECK IF THIS WORKS
         self.cards = []
         self.cards_to_pick_from = []
         self.free_construction = []
@@ -79,6 +82,8 @@ class Player():
         self.victory_points = 0
         self.defeat_token = 0
         self.millitary_strength = 0
+        self.symbols = []
+        self.mixed_resources = {}
 
     def to_dict(self):
         wonder = None
@@ -90,7 +95,7 @@ class Player():
             raise Exception("wonder in the game is neither a list nor a wonder objcet")
 
         return {
-            "wonder": wonder,
+            "wonder": self.wonder,
             "name": self.name,
             "resources": self.resources.to_dict(),
             "cards": [card.to_dict() for card in self.cards],
@@ -108,6 +113,8 @@ class Player():
             "victory_points": self.victory_points,
             "defeat_token": self.defeat_token,
             "millitary_strenth": self.millitary_strength,
+            "symbol": self.symbols,
+            "mixed_resources": self.mixed_resouces
         }
 
     @classmethod
@@ -137,6 +144,8 @@ class Player():
         player.victory_points = data.get("victory_points", 0)
         player.defeat_token = data.get("defeat_token", 0)
         player.millitary_strength = data.get("millitary_strenth")
+        player.symbols = data.get("symbols", [])
+        player.mixed_resources = data.get("mixed_resources", {})
         return player
 
 class Card:

@@ -132,18 +132,22 @@ class GameConsumer(AsyncWebsocketConsumer):
 
         if data.get("type") == "pick":
             card_name = data.get("name")
-            await pick_card(self.game_id, card_name, self.player_name)
-            everyone_has_picked = await check_if_everyone_has_picked_a_card(self.game_id)
-            if everyone_has_picked:
-                print("Everyone has picked!")
-                if game.turn == 6:
-                    print("last turn")
-                    await self.setup_new_age(self.game_id)
+            player_could_pick = await pick_card(self.game_id, card_name, self.player_name)
+            if player_could_pick:
+                everyone_has_picked = await check_if_everyone_has_picked_a_card(self.game_id)
+                if everyone_has_picked:
+                    print("Everyone has picked!")
+                    if game.turn == 6:
+                        print("last turn")
+                        await self.setup_new_age(self.game_id)
+                    else:
+                        print("prepping next turn")
+                        await self.setup_new_turn(self.game_id)
                 else:
-                    print("prepping next turn")
-                    await self.setup_new_turn(self.game_id)
+                    print("Waiting for everyone to pick a card")
             else:
-                print("Waiting for everyone to pick a card")
+                print("could not pick the card")
+                await self.send(text_data=json.dumps({"message": "Does not meet the requirements to pick the card", "status":"fail"}))
 
         # Broadcast message to group
         if data.get("type") == "message":
