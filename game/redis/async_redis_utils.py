@@ -106,7 +106,6 @@ async def get_player_channel_names(game_id):
         print(f"Could not get websockets from game {game_id}, error: {e}")
         traceback.print_exc()
         
-
 async def add_player_websocket_group(game_id, player_name, group_name, channel_name):
     redis = await get_redis_connection()
     await redis.hset(f"websocket_info:{player_name}", 'channel_name', channel_name) # needs to be cleared after the game
@@ -296,6 +295,7 @@ async def setup_next_age(game_id):
     try:
         async with lock:
             game = await get_game_from_redis(game_id, lock)
+            resolve_millitary_conflicts(game.players, game.age)
             game.age += 1
             game.turn = 1
             if game.age == 1:
@@ -322,7 +322,7 @@ async def setup_next_turn(game_id):
         async with lock:
             game = await get_game_from_redis(game_id, lock)
             game.turn += 1
-            if game.age % 2 != 0:
+            if game.age % 2 != 0: # clockwise
                 previous_players_cards = []
                 temp_cards = []
                 for i in range(len(game.players)-1, -1, -1):
@@ -330,7 +330,7 @@ async def setup_next_turn(game_id):
                     game.players[i].cards = previous_players_cards
                     previous_players_cards = temp_cards
                 game.players[len(game.players)].cards = previous_players_cards
-            else:
+            else: # anti-clockwise
                 previous_players_cards = []
                 temp_cards = []
                 for i in range(len(game.players)):
@@ -343,6 +343,31 @@ async def setup_next_turn(game_id):
     except Exception as e:
         print(f"could not set up new age, error: {e}")
         traceback.print_exc()
+
+def resolve_millitary_conflicts(players, age):
+    for i in range(1, len(players)-1, 1):
+        calculate_millitary_conflict_points(players[i-1], players[i], players[i+1])
+    calculate_millitary_conflict_points(players[-1], players[0], players[1])
+    calculate_millitary_conflict_points(players[-2], players[-1], players[0])
+
+def calculate_millitary_conflict_points(left_player, player, right_player, age):
+    points_per_win = 1
+    if age == 2:
+        points_per_win = 3
+    elif age == 3:
+        points_per_win = 5
+    if player.millitary_strength > left_player.millitary_strength:
+        player.victory_token += points_per_win
+    elif player.millitary_strength < left_player.millitary_strength:
+        player.defeat_token += 1
+    elif player.millitary_strength > right_player.millitary_strength:
+        player.victory_token += points_per_win
+    elif player.millitary_strength < right_player.millitary_strength:
+        player.defeat_token += 1
+
+
+
+
 
 def add_card_to_player(game, player_name, card_name): # ok
     player = get_player_from_game(game, player_name)

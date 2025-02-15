@@ -75,9 +75,10 @@ class Player():
         self.west_trading = False
         self.east_trading = False
         self.marketplace = False
-        self.conflict_token = 0
+        self.victory_token = 0
         self.victory_points = 0
         self.defeat_token = 0
+        self.millitary_strength = 0
 
     def to_dict(self):
         wonder = None
@@ -103,9 +104,10 @@ class Player():
             "west_trading": self.west_trading,
             "east_trading": self.east_trading,
             "marketplace": self.marketplace,
-            "conflict_token": self.conflict_token,
+            "victory_token": self.victory_token,
             "victory_points": self.victory_points,
             "defeat_token": self.defeat_token,
+            "millitary_strenth": self.millitary_strength,
         }
 
     @classmethod
@@ -131,9 +133,10 @@ class Player():
         player.west_trading = data.get("west_trading", False)
         player.east_trading = data.get("east_trading", False)
         player.marketplace = data.get("marketplace", False)
-        player.conflict_token = data.get("conflict_token", 0)
+        player.victory_token = data.get("victory_token", 0)
         player.victory_points = data.get("victory_points", 0)
         player.defeat_token = data.get("defeat_token", 0)
+        player.millitary_strength = data.get("millitary_strenth")
         return player
 
 class Card:
