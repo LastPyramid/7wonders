@@ -4,6 +4,8 @@ from time import time
 from channels.layers import get_channel_layer
 from ..game.models import Game, Wonder
 from ..game.game_logic import start_age_II, start_age_III
+from itertools import permutations
+
 import traceback
 
 redis = None  # Global Redis connection object
@@ -245,19 +247,49 @@ async def get_player_resources(game_id, player_name):
         print(f"Could not pick a card, error: {e}")
         traceback.print_exc()
         
-def has_resources(player):
+def mixed_resources(player):
     pass
+
+from itertools import permutations
 
 async def player_can_pick_card(card, player):
     if card.symbol in player.symbols:
         return True
-    for resource, amount in card.cost.items():
+
+    required_resources = card.cost.copy()
+    resources_to_remove = []
+    
+    for resource, amount in required_resources.items():
         if resource in player.resources:
-            if player.resources[resource] < amount:
-                return False
-        else:
-            return False
-    return True
+            if player.resources[resource] >= amount:
+                resources_to_remove.append(resource)
+            else:
+                required_resources[resource] -= player.resources[resource]
+
+    for resource in resources_to_remove:
+        del required_resources[resource]
+
+    if not required_resources:
+        return True
+
+    mixed_resources = player.mixed_resources
+    required_list = list(required_resources.keys())
+
+    for resource_perm in permutations(required_list):
+        remaining = required_resources.copy()
+        used_flex = set()
+
+        for req in resource_perm:
+            for i, options in enumerate(mixed_resources):
+                if req in options and i not in used_flex:
+                    remaining[req] -= 1
+                    used_flex.add(i)
+                    break
+
+        if all(v <= 0 for v in remaining.values()):
+            return True
+
+    return False
 
 def add_card_to_player(game, player_name, card_name):
     player = get_player_from_game(game, player_name)
