@@ -1,7 +1,8 @@
 from django.db import models
 class Game:
-    def __init__(self, age_I_cards, age_II_cards, age_III_cards, players):
-        self.turn = 1
+    def __init__(self, age_I_cards, age_II_cards, age_III_cards, players, turn=1, age=1):
+        self.turn = turn
+        self.age = age
         self.age_I_cards = age_I_cards
         self.age_II_cards = age_II_cards
         self.age_III_cards = age_III_cards
@@ -9,11 +10,12 @@ class Game:
     
     def to_dict(self):
         return {
-            "turn": self.turn,
             "age_I_cards": [card.to_dict() for card in self.age_I_cards],
             "age_II_cards": [card.to_dict() for card in self.age_II_cards],
             "age_III_cards": [card.to_dict() for card in self.age_III_cards],
             "players": [player.to_dict() for player in self.players],
+            "turn": self.turn,
+            "age": self.age,
         }
 
     @classmethod
@@ -23,6 +25,8 @@ class Game:
             age_II_cards=[Card.from_dict(card) for card in data["age_II_cards"]],
             age_III_cards=[Card.from_dict(card) for card in data["age_III_cards"]],
             players=[Player.from_dict(player) for player in data["players"]],
+            turn=data.get("turn"),
+            age=data.get("age"),
         )
 
 class Resources:
@@ -66,7 +70,7 @@ class Player():
         #self.number = number
         self.wonder = wonder
         self.name = name
-        self.resources = {"ore":0, "stone":0, "wood":0, "clay":0,"papyrus":0, "cloth":0} # CHECK IF THIS WORKS
+        self.resources = {"ore":0, "stone":0, "wood":0, "clay":0,"papyrus":0, "cloth":0, "glass":1} # CHECK IF THIS WORKS
         self.cards = []
         self.cards_to_pick_from = []
         self.free_construction = []
@@ -95,9 +99,9 @@ class Player():
             raise Exception("wonder in the game is neither a list nor a wonder objcet")
 
         return {
-            "wonder": self.wonder,
+            "wonder": wonder,
             "name": self.name,
-            "resources": self.resources.to_dict(),
+            "resources": self.resources,
             "cards": [card.to_dict() for card in self.cards],
             "cards_to_pick_from": [card.to_dict() for card in self.cards_to_pick_from],
             "free_construction": [construction.to_dict() for construction in self.free_construction],
@@ -113,8 +117,8 @@ class Player():
             "victory_points": self.victory_points,
             "defeat_token": self.defeat_token,
             "millitary_strenth": self.millitary_strength,
-            "symbol": self.symbols,
-            "mixed_resources": self.mixed_resouces
+            "symbols": self.symbols,
+            "mixed_resources": self.mixed_resources
         }
 
     @classmethod
@@ -128,7 +132,7 @@ class Player():
             wonder=wonder,
             name=data["name"],
         )
-        player.resources = Resources.from_dict(data.get("resources"))
+        player.resources = data.get("resources")
         player.cards = [Card.from_dict(card) for card in data.get("cards", [])]
         player.cards_to_pick_from = [Card.from_dict(card) for card in data.get("cards_to_pick_from", [])]
         player.free_construction = [Card.from_dict(construction) for construction in data.get("free_construction", [])]

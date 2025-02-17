@@ -1,4 +1,5 @@
 import aioredis
+from itertools import permutations
 from aioredis.lock import Lock
 from time import time
 from channels.layers import get_channel_layer
@@ -207,9 +208,9 @@ async def check_if_everyone_has_picked_a_card(game_id):
             game = await get_game_from_redis(game_id, lock)
             number_of_unpicked_cards = 7 - game.turn
             for player in game.players:
-                if number_of_unpicked_cards != player.card_to_pick_from:
+                if number_of_unpicked_cards != len(player.cards_to_pick_from):
                     return False
-            return True
+            return game
     except Exception as e:
         print(f"could not check if everyone has picked a CARD, error: {e}")
         traceback.print_exc()
@@ -221,7 +222,7 @@ async def pick_card(game_id, card_name, player_name):
         async with lock:
             game = await get_game_from_redis(game_id, lock)
             card_is_added = add_card_to_player(game, player_name, card_name)
-            await insert_game_into_redis(game)
+            await insert_game_into_redis(game_id, game, lock)
             if card_is_added:
                 print(f"{card_name} was added to the players deck!")
                 return True
@@ -241,21 +242,29 @@ async def get_player_resources(game_id, player_name):
             game = await get_game_from_redis(game_id, lock)
             player = get_player_from_game(game, player_name)
             resources = player.resources
-            await insert_game_into_redis(game)
+            await insert_game_into_redis(game_id, game, lock)
             return resources
     except Exception as e:
         print(f"Could not pick a card, error: {e}")
         traceback.print_exc()
         
-def mixed_resources(player):
-    pass
+async def get_player_cards(game_id, player_name):
+    redis = await get_redis_connection()
+    lock = Lock(redis, f"lock:game:{game_id}", timeout=30)
+    try:
+        async with lock:
+            game = await get_game_from_redis(game_id, lock)
+            player = get_player_from_game(game, player_name)
+            return [card.name for card in player.cards]
+    except Exception as e:
+        print(f"Could not get cards, error: {e}")
+        traceback.print_exc()
 
-from itertools import permutations
-
-async def player_can_pick_card(card, player):
+def player_can_pick_card(card, player): # need to check if the player have enough gold here as well
+    print("In player_can_pick_car")
     if card.symbol in player.symbols:
+        print("a")
         return True
-
     required_resources = card.cost.copy()
     resources_to_remove = []
     
@@ -270,6 +279,7 @@ async def player_can_pick_card(card, player):
         del required_resources[resource]
 
     if not required_resources:
+        print("b")
         return True
 
     mixed_resources = player.mixed_resources
@@ -287,21 +297,27 @@ async def player_can_pick_card(card, player):
                     break
 
         if all(v <= 0 for v in remaining.values()):
+            print("c")
             return True
 
+    print("d")
     return False
 
 def add_card_to_player(game, player_name, card_name):
+    print("aaaa")
     player = get_player_from_game(game, player_name)
-    for i, card in enumerate(player.card_to_pick_from):
+    print(f"bbbb")
+    for i, card in enumerate(player.cards_to_pick_from):
         if card.name == card_name:
             if player_can_pick_card(card, player):
-                player.cards.append(player.card_to_pick_from.pop(i))
+                player.cards.append(player.cards_to_pick_from.pop(i))
                 return True
     return False
 
 def get_player_from_game(game, name):
+    print("In get_player_from_game")
     for player in game.players:
+        print(f"player.name: {player.name}")
         if player.name == name:
             return player
 
@@ -376,7 +392,7 @@ async def setup_next_turn(game_id):
                     temp_cards = game.players[i].cards
                     game.players[i].cards = previous_players_cards
                     previous_players_cards = temp_cards
-                game.players[len(game.players)].cards = previous_players_cards
+                game.players[len(game.players)-1].cards = previous_players_cards
             else: # anti-clockwise
                 previous_players_cards = []
                 temp_cards = []
@@ -412,40 +428,36 @@ def calculate_millitary_conflict_points(left_player, player, right_player, age):
     elif player.millitary_strength < right_player.millitary_strength:
         player.defeat_token += 1
 
-def get_player_from_game(game, name):
-
-    pass
-
 async def setup_player_resources(game):
     players = game.players
     for player in players:
         if player.wonder.name == "Rhodos_day.png": 
-            player.resources.ore += 1
+            player.resources["ore"] += 1
         elif player.wonder.name == "Rhodos_night.png":
-            player.resources.ore += 1
+            player.resources["ore"] += 1
         elif player.wonder.name == "Alexandria_day.png":
-            player.resources.glass += 1
+            player.resources["glass"] += 1
         elif player.wonder.name == "Alexandria_night.png":
-            player.resources.glass += 1
+            player.resources["glass"] += 1
         elif player.wonder.name == "Ephesos_day.png":
-            player.resources.papyrus += 1
+            player.resources["papyrus"] += 1
         elif player.wonder.name == "Ephesos_night.png":
-            player.resources.papyrus += 1
+            player.resources["papyrus"] += 1
         elif player.wonder.name == "Babylon_day.png":
-            player.resources.wood += 1
+            player.resources["wood"] += 1
         elif player.wonder.name == "Babylon_night.png":
-            player.resources.wood += 1
+            player.resources["wood"] += 1
         elif player.wonder.name == "Olympia_day.png":
-            player.resources.clay += 1
+            player.resources["clay"] += 1
         elif player.wonder.name == "Olympia_night.png":
-            player.resources.clay += 1
+            player.resources["clay"] += 1
         elif player.wonder.name == "Halikarnassos_day.png":
-            player.resources.cloth += 1
+            player.resources["cloth"] += 1
         elif player.wonder.name == "Halikarnassos_night.png":
-            player.resources.cloth += 1
+            player.resources["cloth"] += 1
         elif player.wonder.name == "Gizah_day.png":
-            player.resources.stone += 1
+            player.resources["stone"] += 1
         elif player.wonder.name == "Gizah_night.png":
-            player.resources.stone += 1
+            player.resources["stone"] += 1
         else:
             raise Exception("Error during resource setup")

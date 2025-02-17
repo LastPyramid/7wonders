@@ -1,7 +1,12 @@
-from channels.generic.websocket import AsyncWebsocketConsumer
 import json
-from ..redis.async_redis_utils import add_player_to_game, remove_player_from_game, update_last_seen, add_player_websocket_group, get_player_channel_names, get_players, lock_game, insert_game_into_redis, pick_wonder, check_if_everyone_has_picked_a_wonder, pick_card, check_if_everyone_has_picked_a_card, setup_next_age, setup_next_turn
 from ..game.game_logic import setup_game
+from ..redis.async_redis_utils import (
+    add_player_to_game, remove_player_from_game, update_last_seen,
+    add_player_websocket_group, get_player_channel_names, get_players,
+    lock_game, insert_game_into_redis, pick_wonder, check_if_everyone_has_picked_a_wonder,
+    pick_card, check_if_everyone_has_picked_a_card, setup_next_age, setup_next_turn,
+    get_player_cards)
+from channels.generic.websocket import AsyncWebsocketConsumer
 
 class GameConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -52,12 +57,15 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def send_cards(self, channel_names, game):
         age = game.age * "I"
+        print(channel_names)
+        print("heeey")
         for player_name, channel_name in channel_names.items():
             cards = []
             for player in game.players:
                 if player.name == player_name:
                     for card in player.cards_to_pick_from:
                         cards.append(card.to_dict())
+            print(f"channel_name = {channel_name}, player_name = {player_name}, age = {age}")
             await self.channel_layer.send(
             channel_name,
                 {
@@ -120,23 +128,32 @@ class GameConsumer(AsyncWebsocketConsumer):
             people_have_picked = await check_if_everyone_has_picked_a_wonder(self.game_id)
             if people_have_picked:
                 game = people_have_picked
+                print(game)
                 channel_names = await get_player_channel_names(self.game_id)
-                self.send_cards(channel_names, game)
+                await self.send_cards(channel_names, game)
                 print("everyone has picked now")
             else:
                 print("apperently not everyone has picked")
-            print("I'm speaking from the pick_wonder section")
 
         if data.get("type") == "setup":
             pass
 
-        if data.get("type") == "pick":
+        if data.get("type") == "get_cards":
+            cards = await get_player_cards(self.game_id, self.player_name)
+            if cards == []:
+                await self.send(text_data=json.dumps({"get_cards":{"status":"empty", "message": "you have no cards"}}))
+            else:
+                await self.send(text_data=json.dumps({"get_cards":{"status":"ok", "cards":cards}}))
+
+        if data.get("type") == "pick": # change to "pick_card"
             card_name = data.get("name")
             player_could_pick = await pick_card(self.game_id, card_name, self.player_name)
-            if player_could_pick:
+            if player_could_pick: # need to send the card to front-end
                 everyone_has_picked = await check_if_everyone_has_picked_a_card(self.game_id)
+                await self.send(text_data=json.dumps({"pick_card": {"status":"success"}}))
                 if everyone_has_picked:
                     print("Everyone has picked!")
+                    game = everyone_has_picked
                     if game.turn == 6:
                         print("last turn")
                         await self.setup_new_age(self.game_id)
@@ -147,7 +164,7 @@ class GameConsumer(AsyncWebsocketConsumer):
                     print("Waiting for everyone to pick a card")
             else:
                 print("could not pick the card")
-                await self.send(text_data=json.dumps({"message": "Does not meet the requirements to pick the card", "status":"fail"}))
+                await self.send(text_data=json.dumps({"pick_card": {"status":"fail"}, "message": "Could not pick card"}))
 
         # Broadcast message to group
         if data.get("type") == "message":
@@ -163,7 +180,6 @@ class GameConsumer(AsyncWebsocketConsumer):
         if data.get("start_game"):
             pass
 
-
     async def send_wonder(self, event):
         setup = event['message']
         await self.send(text_data=json.dumps({"setup":setup}))
@@ -178,7 +194,6 @@ class GameConsumer(AsyncWebsocketConsumer):
         user = event["user"]
         print("username is: ", user)
         await self.send(text_data=json.dumps({"message": message, "user":user}))
-
 
 class LandingPageConsumer(AsyncWebsocketConsumer):
     async def connect(self):

@@ -1,6 +1,8 @@
-from ..game.models import RawMaterial, ManufacturedGood, CivilianStructure, ScientificStructure, CommercialStructure, MilitaryStructure
-# add game logic here and import shit fro models.py
-#
+from ..game.models import (
+    RawMaterial, ManufacturedGood, CivilianStructure,
+    ScientificStructure, CommercialStructure, MilitaryStructure
+)
+
 def generate_age_I_cards(nr_of_players):
     if nr_of_players < 3:
         print("too few players")

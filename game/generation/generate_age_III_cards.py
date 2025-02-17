@@ -1,4 +1,7 @@
-from ..game.models import RawMaterial, ManufacturedGood, CivilianStructure, ScientificStructure, CommercialStructure, MilitaryStructure, Guild
+from ..game.models import (
+    RawMaterial, ManufacturedGood, CivilianStructure,
+    ScientificStructure, CommercialStructure, MilitaryStructure, Guild
+)
 
 def generate_age_III_cards(nr_of_players):
     if nr_of_players < 3:
