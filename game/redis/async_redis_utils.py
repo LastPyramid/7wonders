@@ -247,7 +247,7 @@ async def get_player_resources(game_id, player_name):
     except Exception as e:
         print(f"Could not pick a card, error: {e}")
         traceback.print_exc()
-        
+        j
 async def get_player_cards(game_id, player_name):
     redis = await get_redis_connection()
     lock = Lock(redis, f"lock:game:{game_id}", timeout=30)
@@ -261,7 +261,7 @@ async def get_player_cards(game_id, player_name):
         traceback.print_exc()
 
 def player_can_pick_card(card, player): # need to check if the player have enough gold here as well
-    print("In player_can_pick_car")
+    print(f"{player.name} is trying to pick {card.name}")
     if card.symbol in player.symbols:
         print("a")
         return True
@@ -379,6 +379,7 @@ async def setup_next_age(game_id):
         traceback.print_exc()
 
 async def setup_next_turn(game_id):
+    print("setting up next turn!")
     redis = await get_redis_connection()
     lock = Lock(redis, f"lock:game:{game_id}", timeout=30)
     try:
@@ -402,6 +403,7 @@ async def setup_next_turn(game_id):
                     previous_players_cards = temp_cards
                 game.players[0].cards = previous_players_cards
             await insert_game_into_redis(game_id, game, lock)
+            print("setup_next_turn")
             return game
     except Exception as e:
         print(f"could not set up new age, error: {e}")

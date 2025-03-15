@@ -43,6 +43,3 @@ def start_age_III(game):
 		player.cards_to_pick_from = []
 		for card in range(7):
 			player.cards_to_pick_from.append(game.age_III_cards.pop())
-
-		
-		

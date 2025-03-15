@@ -48,12 +48,13 @@ class GameConsumer(AsyncWebsocketConsumer):
     async def setup_new_age(self, game_id):
         channel_names = await get_player_channel_names(self.game_id)
         game = await setup_next_age(game_id)
-        self.send_cards(channel_names, game)
+        await self.send_cards(channel_names, game)
 
     async def setup_new_turn(self, game_id):
         channel_names = await get_player_channel_names(self.game_id)
         game = await setup_next_turn(game_id)
-        self.send_cards(channel_names, game)
+        print("in setup_new_turn")
+        await self.send_cards(channel_names, game)
 
     async def send_cards(self, channel_names, game):
         age = game.age * "I"
@@ -139,18 +140,15 @@ class GameConsumer(AsyncWebsocketConsumer):
             pass
 
         if data.get("type") == "get_cards":
-            cards = await get_player_cards(self.game_id, self.player_name)
-            if cards == []:
-                await self.send(text_data=json.dumps({"get_cards":{"status":"empty", "message": "you have no cards"}}))
-            else:
-                await self.send(text_data=json.dumps({"get_cards":{"status":"ok", "cards":cards}}))
+            await self.send_player_cards()
 
         if data.get("type") == "pick": # change to "pick_card"
             card_name = data.get("name")
             player_could_pick = await pick_card(self.game_id, card_name, self.player_name)
             if player_could_pick: # need to send the card to front-end
-                everyone_has_picked = await check_if_everyone_has_picked_a_card(self.game_id)
+                await self.send_player_cards()
                 await self.send(text_data=json.dumps({"pick_card": {"status":"success"}}))
+                everyone_has_picked = await check_if_everyone_has_picked_a_card(self.game_id)
                 if everyone_has_picked:
                     print("Everyone has picked!")
                     game = everyone_has_picked
@@ -179,6 +177,13 @@ class GameConsumer(AsyncWebsocketConsumer):
 
         if data.get("start_game"):
             pass
+
+    async def send_player_cards(self):
+        cards = await get_player_cards(self.game_id, self.player_name)
+        if cards == []:
+            await self.send(text_data=json.dumps({"get_cards":{"status":"empty", "message": "you have no cards"}}))
+        else:
+            await self.send(text_data=json.dumps({"get_cards":{"status":"ok", "cards":cards}}))
 
     async def send_wonder(self, event):
         setup = event['message']

@@ -70,12 +70,12 @@ class Player():
         #self.number = number
         self.wonder = wonder
         self.name = name
-        self.resources = {"ore":0, "stone":0, "wood":0, "clay":0,"papyrus":0, "cloth":0, "glass":1} # CHECK IF THIS WORKS
+        self.resources = {"ore":0, "stone":0, "wood":0, "clay":0,"papyrus":0, "cloth":0, "glass":0, "coins":3} # CHECK IF THIS WORKS
         self.cards = []
         self.cards_to_pick_from = []
         self.free_construction = []
         self.stage_of_wonder = 0
-        self.coins = 3
+        #self.coins = 3
         self.compass = 0
         self.gear = 0
         self.scriptorium = 0
@@ -106,7 +106,7 @@ class Player():
             "cards_to_pick_from": [card.to_dict() for card in self.cards_to_pick_from],
             "free_construction": [construction.to_dict() for construction in self.free_construction],
             "stage_of_wonder": self.stage_of_wonder,
-            "coins": self.coins,
+            #"coins": self.coins,
             "compass": self.compass,
             "gear": self.gear,
             "scriptorium": self.scriptorium,
@@ -137,7 +137,7 @@ class Player():
         player.cards_to_pick_from = [Card.from_dict(card) for card in data.get("cards_to_pick_from", [])]
         player.free_construction = [Card.from_dict(construction) for construction in data.get("free_construction", [])]
         player.stage_of_wonder = data.get("stage_of_wonder", 0)
-        player.coins = data.get("coins", 3)
+        #player.coins = data.get("coins", 3)
         player.compass = data.get("compass", 0)
         player.gear = data.get("gear", 0)
         player.scriptorium = data.get("scriptorium", 0)
