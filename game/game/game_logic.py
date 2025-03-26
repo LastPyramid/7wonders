@@ -23,6 +23,16 @@ def setup_game(list_of_players):
 	for name in list_of_players:
 		player = Player(wonders.pop(), name)
 		players.append(player)
+
+	left_player = players[-1]
+	for i, player in range(len(players)-1):
+		right_player = players[i+1]
+		player.left_player = left_player
+		player.right_player = right_player
+		left_player = player
+	player[-1].left_player = player[-2]
+	player[-1].right_player = player[1]
+
 	
     # Give players cards
 	for player in players:

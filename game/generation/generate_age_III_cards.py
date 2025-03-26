@@ -79,29 +79,29 @@ def generate_age_III_scientific_structures(nr_of_players):
 
 def generate_age_III_commercial_structures(nr_of_players):
     haven1 = CommercialStructure(3, "Yellow", "3+", "Haven", cost={"wood": 1, "ore": 1, "cloth": 1, "symbol":"Barrel"},
-            resource_choices={"choices": [{"coin": 1}, {"victory_point": 1}], "condition": {"location": ["self"], "activity": "Brown"}})
+            gain={"gain": {"coin": 1, "victory_point": 1}, "condition": {"location": ["self"], "activity": "Brown"}})
     haven2 = CommercialStructure(3, "Yellow", "4+", "Haven", cost={"wood": 1, "ore": 1, "cloth": 1, "symbol":"Barrel"},
-            resource_choices={"choices": [{"coin": 1}, {"victory_point": 1}], "condition": {"location": ["self"], "activity": "Brown"}})
+            gain={"gain": {"coin": 1, "victory_point": 1}, "condition": {"location": ["self"], "activity": "Brown"}})
 
     lighthouse1 = CommercialStructure(3, "Yellow", "3+", "Lighthouse", cost={"stone": 1, "glass": 1, "symbol":"Lighthouse"},
-            resource_choices={"choices": [{"coin": 1}, {"victory_point": 1}], "condition": {"location": ["self"], "activity": "Yellow"}})
+            gain={"gain": {"coin": 1, "victory_point": 1}, "condition": {"location": ["self"], "activity": "Yellow"}})
     lighthouse2 = CommercialStructure(3, "Yellow", "6+", "Lighthouse", cost={"stone": 1, "glass": 1, "symbol":"Lighthouse"},
-            resource_choices={"choices": [{"coin": 1}, {"victory_point": 1}], "condition": {"location": ["self"], "activity": "Yellow"}})
+            gain={"gain": {"coin": 1, "victory_point": 1}, "condition": {"location": ["self"], "activity": "Yellow"}})
 
     chamber_of_commerce1 = CommercialStructure(3, "Yellow", "4+", "Chamber Of Commerce", cost={"clay": 2, "papyrus": 1},
-            resource_choices={"choices": [{"coin": 2}, {"victory_point": 2}], "condition": {"location": ["self"], "activity": "Gray"}})
+            gain={"gain": {"coin": 2, "victory_point": 2}, "condition": {"location": ["self"], "activity": "Gray"}})
     chamber_of_commerce2 = CommercialStructure(3, "Yellow", "6+", "Chamber Of Commerce", cost={"clay": 2, "papyrus": 1},
-            resource_choices={"choices": [{"coin": 2}, {"victory_point": 2}], "condition": {"location": ["self"], "activity": "Gray"}})
+            gain={"gain": {"coin": 2, "victory_point": 2}, "condition": {"location": ["self"], "activity": "Gray"}})
 
     arena1 = CommercialStructure(3, "Yellow", "3+", "Arena", cost={"stone": 2, "ore": 1, "symbol":"Lightning Bolt"},
-            resource_choices={"choices": [{"coin": 3}, {"victory_point": 1}], "condition": {"location": ["self"], "activity": "Stage of Wonders"}})
+            gain={"gain": {"coin": 3, "victory_point": 1}, "condition": {"location": ["self"], "activity": "Stage of Wonders"}})
     arena2 = CommercialStructure(3, "Yellow", "5+", "Arena", cost={"stone": 2, "ore": 1, "symbol":"Lightning Bolt"},
-            resource_choices={"choices": [{"coin": 3}, {"victory_point": 1}], "condition": {"location": ["self"], "activity": "Stage of Wonders"}})
+            gain={"gain": {"coin": 3, "victory_point": 1}, "condition": {"location": ["self"], "activity": "Stage of Wonders"}})
 
     ludus1 = CommercialStructure(3, "Yellow", "5+", "Ludus", cost={"stone": 1, "ore": 1},
-            resource_choices={"choices": [{"coin": 3}, {"victory_point": 1}], "condition": {"location": ["self"], "activity": "Red"}})
+            gain={"gain": {"coin": 3, "victory_point": 1}, "condition": {"location": ["self"], "activity": "Red"}})
     ludus2 = CommercialStructure(3, "Yellow", "7+", "Ludus", cost={"stone": 2, "ore": 1},
-            resource_choices={"choices": [{"coin": 3}, {"victory_point": 1}], "condition": {"location": ["self"], "activity": "Red"}})
+            gain={"gain": {"coin": 3, "victory_point": 1}, "condition": {"location": ["self"], "activity": "Red"}})
 
     three_players = [haven1, lighthouse1, arena1]
     four_players = [haven2, chamber_of_commerce1]

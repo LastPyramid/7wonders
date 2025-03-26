@@ -66,19 +66,19 @@ class Resources:
         )
 
 class Player():
-    def __init__(self, wonder, name):
+    def __init__(self, wonder, name, left_player=None, right_player=None):
         #self.number = number
         self.wonder = wonder
         self.name = name
-        self.resources = {"ore":0, "stone":0, "wood":0, "clay":0,"papyrus":0, "cloth":0, "glass":0, "coins":3} # CHECK IF THIS WORKS
+        self.resources = {"compass":0, "gear":0, "tablet":0, "ore":0, "stone":0, "wood":0, "clay":0,"papyrus":0, "cloth":0, "glass":0, "coins":3} # CHECK IF THIS WORKS
         self.cards = []
         self.cards_to_pick_from = []
         self.free_construction = []
         self.stage_of_wonder = 0
         #self.coins = 3
-        self.compass = 0
-        self.gear = 0
-        self.scriptorium = 0
+        # self.compass = 0
+        # self.gear = 0
+        # self.scriptorium = 0
         self.west_trading = False
         self.east_trading = False
         self.marketplace = False
@@ -86,8 +86,10 @@ class Player():
         self.victory_points = 0
         self.defeat_token = 0
         self.millitary_strength = 0
-        self.symbols = []
-        self.mixed_resources = {}
+        self.symbols = {}
+        self.mixed_resources = []
+        self.left_player = left_player
+        self.right_player = right_player
 
     def to_dict(self):
         wonder = None
@@ -96,7 +98,7 @@ class Player():
         elif isinstance(self.wonder, Wonder):
             wonder = self.wonder.to_dict()
         else:
-            raise Exception("wonder in the game is neither a list nor a wonder objcet")
+            raise Exception("wonder in the game is neither a list nor a wonder object")
 
         return {
             "wonder": wonder,
@@ -107,9 +109,9 @@ class Player():
             "free_construction": [construction.to_dict() for construction in self.free_construction],
             "stage_of_wonder": self.stage_of_wonder,
             #"coins": self.coins,
-            "compass": self.compass,
-            "gear": self.gear,
-            "scriptorium": self.scriptorium,
+            # "compass": self.compass,
+            # "gear": self.gear,
+            # "scriptorium": self.scriptorium,
             "west_trading": self.west_trading,
             "east_trading": self.east_trading,
             "marketplace": self.marketplace,
@@ -118,7 +120,9 @@ class Player():
             "defeat_token": self.defeat_token,
             "millitary_strenth": self.millitary_strength,
             "symbols": self.symbols,
-            "mixed_resources": self.mixed_resources
+            "mixed_resources": self.mixed_resources,
+            "left_player": self.left_player,
+            "right_player": self.right_player
         }
 
     @classmethod
@@ -138,9 +142,9 @@ class Player():
         player.free_construction = [Card.from_dict(construction) for construction in data.get("free_construction", [])]
         player.stage_of_wonder = data.get("stage_of_wonder", 0)
         #player.coins = data.get("coins", 3)
-        player.compass = data.get("compass", 0)
-        player.gear = data.get("gear", 0)
-        player.scriptorium = data.get("scriptorium", 0)
+        # player.compass = data.get("compass", 0)
+        # player.gear = data.get("gear", 0)
+        # player.scriptorium = data.get("scriptorium", 0)
         player.west_trading = data.get("west_trading", False)
         player.east_trading = data.get("east_trading", False)
         player.marketplace = data.get("marketplace", False)
@@ -149,11 +153,13 @@ class Player():
         player.defeat_token = data.get("defeat_token", 0)
         player.millitary_strength = data.get("millitary_strenth")
         player.symbols = data.get("symbols", [])
-        player.mixed_resources = data.get("mixed_resources", {})
+        player.mixed_resources = data.get("mixed_resources")
+        player.left_player = data.get("left_player")
+        player.right_player = data.get("right_player")
         return player
 
 class Card:
-    def __init__(self, age, color, number_of_players, name, cost=None, symbol=None, resource_choices=None):
+    def __init__(self, age, color, number_of_players, name, cost=None, symbol=None, resource_choices=None, gain=None):
         self.age = age
         self.color = color
         self.number_of_players = number_of_players
@@ -161,6 +167,7 @@ class Card:
         self.cost = cost or {}
         self.symbol = symbol
         self.resource_choices = resource_choices or {}
+        self.gain = gain # can move this to yellow cards, commercials
     
     def to_dict(self):
         return {
@@ -171,6 +178,7 @@ class Card:
             "cost": self.cost,
             "symbol": self.symbol,
             "resource_choices": self.resource_choices,
+            "gain": self.gain,
         }
 
     @classmethod
@@ -183,11 +191,12 @@ class Card:
             cost=data.get("cost", {}),
             symbol=data.get("symbol"),
             resource_choices=data.get("resource_choices", {}),
+            gain=data.get("gain", {}),
         )
 
 class RawMaterial(Card):
-    def __init__(self, age, color, number_of_players, name, cost=None, symbol=None, resource_choices=None, wood=0, stone=0, clay=0, ore=0):
-        super().__init__(age, color, number_of_players, name, cost, symbol, resource_choices)
+    def __init__(self, age, color, number_of_players, name, cost=None, symbol=None, resource_choices=None, wood=0, stone=0, clay=0, ore=0, gain=None):
+        super().__init__(age, color, number_of_players, name, cost, symbol, resource_choices, gain)
         self.wood = wood
         self.stone = stone
         self.clay = clay
@@ -221,8 +230,8 @@ class RawMaterial(Card):
         )
 
 class ManufacturedGood(Card):
-    def __init__(self, age, color, number_of_players, name, cost=None, symbol=None, resource_choices=None, glass=None, papyrus=None, cloth=None):
-        super().__init__(age, color, number_of_players, name, cost, symbol, resource_choices)
+    def __init__(self, age, color, number_of_players, name, cost=None, symbol=None, resource_choices=None, glass=0, papyrus=0, cloth=0, gain=None):
+        super().__init__(age, color, number_of_players, name, cost, symbol, resource_choices, gain)
         self.glass = glass
         self.papyrus = papyrus
         self.cloth = cloth
@@ -253,8 +262,8 @@ class ManufacturedGood(Card):
         )
 
 class CivilianStructure(Card):
-    def __init__(self, age, color, number_of_players, name, cost=None, symbol=None, resource_choices=None, victory_points=None):
-        super().__init__(age, color, number_of_players, name, cost, symbol, resource_choices)
+    def __init__(self, age, color, number_of_players, name, cost=None, symbol=None, resource_choices=None, victory_points=None, gain=None):
+        super().__init__(age, color, number_of_players, name, cost, symbol, resource_choices, gain)
         self.victory_points = victory_points
     
     def to_dict(self):
@@ -280,8 +289,8 @@ class CivilianStructure(Card):
     
 
 class ScientificStructure(Card):
-    def __init__(self, age, color, number_of_players, name, cost=None, symbol=None, resource_choices=None, compass=None, gear=None, tablet=None):
-        super().__init__(age, color, number_of_players, name, cost, symbol, resource_choices)
+    def __init__(self, age, color, number_of_players, name, cost=None, symbol=None, resource_choices=None, compass=None, gear=None, tablet=None, gain=None):
+        super().__init__(age, color, number_of_players, name, cost, symbol, resource_choices, gain)
         self.compass = compass
         self.gear = gear
         self.tablet = tablet
@@ -312,8 +321,8 @@ class ScientificStructure(Card):
         return data
 
 class CommercialStructure(Card):
-    def __init__(self, age, color, number_of_players, name, cost=None, symbol=None, resource_choices=None, west_trading=None, east_trading=None, marketplace=None, gold=None):
-        super().__init__(age, color, number_of_players, name, cost, symbol, resource_choices)
+    def __init__(self, age, color, number_of_players, name, cost=None, symbol=None, resource_choices=None, west_trading=None, east_trading=None, marketplace=None, gold=None, gain=None):
+        super().__init__(age, color, number_of_players, name, cost, symbol, resource_choices, gain)
         self.gold = gold
         self.west_trading = west_trading
         self.east_trading = east_trading
@@ -340,8 +349,8 @@ class CommercialStructure(Card):
         )
     
 class MilitaryStructure(Card):
-    def __init__(self, age, color, number_of_players, name, cost=None, symbol=None, resource_choices=None, shield=0):
-        super().__init__(age, color, number_of_players, name, cost, symbol, resource_choices)
+    def __init__(self, age, color, number_of_players, name, cost=None, symbol=None, resource_choices=None, shield=0, gain=None):
+        super().__init__(age, color, number_of_players, name, cost, symbol, resource_choices, gain)
         self.shield = shield
 
     def to_dict(self):
@@ -369,14 +378,14 @@ class MilitaryStructure(Card):
         )
 
 class Guild(Card):
-    def __init__(self, age, color, number_of_players, name, cost=None, symbol=None, resource_choices=None, location=None, activity=None, victory_points=None, compass=None, gear=None, tablet=None):
-        super().__init__(age, color, number_of_players, name, cost, symbol, resource_choices)
+    def __init__(self, age, color, number_of_players, name, cost=None, symbol=None, resource_choices=None, location=None, activity=None, victory_points=None, gain=None):
+        super().__init__(age, color, number_of_players, name, cost, symbol, resource_choices, gain)
         self.location = location
         self.activity = activity
         self.victory_points = victory_points
-        self.compass = compass
-        self.gear = gear
-        self.tablet = tablet
+        # self.compass = compass
+        # self.gear = gear
+        # self.tablet = tablet
 
     def to_dict(self):
         data = super().to_dict()
@@ -384,9 +393,9 @@ class Guild(Card):
             "location": self.location,
             "activity": self.activity,
             "victory_points": self.victory_points,
-            "compass": self.compass,
-            "gear": self.gear,
-            "tablet": self.tablet,
+            # "compass": self.compass,
+            # "gear": self.gear,
+            # "tablet": self.tablet,
         })
         return data
 
@@ -404,9 +413,9 @@ class Guild(Card):
             location=data.get("location"),
             activity=data.get("activity"),
             victory_points=data.get("victory_points"),
-            compass=data.get("compass"),
-            gear=data.get("gear"),
-            tablet=data.get("tablet"),
+            # compass=data.get("compass"),
+            # gear=data.get("gear"),
+            # tablet=data.get("tablet"),
         )
 
 
@@ -445,14 +454,16 @@ class Wonder():
         )
 
 class Stage:
-    def __init__(self, benefit, cost):
+    def __init__(self, benefit, cost, purchased=False):
         self.benefit = benefit
         self.cost = cost
+        self.purchased = purchased
 
     def to_dict(self):
         return {
             "benefit": self.benefit,
             "cost": self.cost,
+            "purchased": self.purchased,
         }
 
     @classmethod
@@ -460,4 +471,5 @@ class Stage:
         return cls(
             benefit=data["benefit"],
             cost=data["cost"],
+            purchased=data["purchased"],
         )

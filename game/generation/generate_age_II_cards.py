@@ -115,11 +115,11 @@ def generate_age_II_commercial_structures(nr_of_players):
     forum2 = CommercialStructure(2, "Yellow", "6+", "Forum", cost={"clay": 2, "symbol":"Table"}, resource_choices={"choices": [{"glass": 1, "papyrus": 1, "cloth": 1}]}, symbol=["Barrel"])
     forum3 = CommercialStructure(2, "Yellow", "7+", "Forum", cost={"clay": 2, "symbol":"Table"}, resource_choices={"choices": [{"glass": 1, "papyrus": 1, "cloth": 1}]}, symbol=["Barrel"])
 
-    vineyard1 = CommercialStructure(2, "Yellow", "3+", "Vineyard", resource_choices={"choices": [{"coin": 1}], "condition": {"where": ["left", "right", "self"], "what": "Brown"}})
-    vineyard2 = CommercialStructure(2, "Yellow", "6+", "Vineyard", resource_choices={"choices": [{"coin": 1}], "condition": {"where": ["left", "right", "self"], "what": "Brown"}})
+    vineyard1 = CommercialStructure(2, "Yellow", "3+", "Vineyard", gain={"gain": {"coin": 1}, "condition": {"location": ["left", "right", "self"], "activity": "Brown"}})
+    vineyard2 = CommercialStructure(2, "Yellow", "6+", "Vineyard", gain={"gain": {"coin": 1}, "condition": {"location": ["left", "right", "self"], "activity": "Brown"}})
 
-    bazaar1 = CommercialStructure(2, "Yellow", "4+", "Bazaar", resource_choices={"choices": [{"coin": 2}], "condition": {"where": ["left", "right", "self"], "what": "Yellow"}})
-    bazaar2 = CommercialStructure(2, "Yellow", "7+", "Bazaar", resource_choices={"choices": [{"coin": 2}], "condition": {"where": ["left", "right", "self"], "what": "Yellow"}})
+    bazaar1 = CommercialStructure(2, "Yellow", "4+", "Bazaar", gain={"gain": {"coin": 2}, "condition": {"location": ["left", "right", "self"], "activity": "Yellow"}})
+    bazaar2 = CommercialStructure(2, "Yellow", "7+", "Bazaar", gain={"gain": {"coin": 2}, "condition": {"location": ["left", "right", "self"], "activity": "Yellow"}})
 
     three_players = [caravansery1, forum1, vineyard1]
     four_players = [bazaar1]

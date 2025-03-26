@@ -5,7 +5,7 @@ from ..redis.async_redis_utils import (
     add_player_websocket_group, get_player_channel_names, get_players,
     lock_game, insert_game_into_redis, pick_wonder, check_if_everyone_has_picked_a_wonder,
     pick_card, check_if_everyone_has_picked_a_card, setup_next_age, setup_next_turn,
-    get_player_cards)
+    get_player_cards, sell_card, build_wonder)
 from channels.generic.websocket import AsyncWebsocketConsumer
 
 class GameConsumer(AsyncWebsocketConsumer):
@@ -76,7 +76,6 @@ class GameConsumer(AsyncWebsocketConsumer):
                 }
             )
 
-
     async def receive(self, text_data): # tar emot meddelanden från 1 websocket, frontend
         data = json.loads(text_data)
 
@@ -142,7 +141,19 @@ class GameConsumer(AsyncWebsocketConsumer):
         if data.get("type") == "get_cards":
             await self.send_player_cards()
 
-        if data.get("type") == "pick": # change to "pick_card"
+        if data.get("type") == "sell_card":
+            print("selling a card!")
+            await sell_card(self.player_name, self.game_id, data.get("name"))
+            # send back to front-end
+
+        if data.get("type") == "build_wonder":
+            print("building wonder!")
+            i_can_build_wonder = await build_wonder(self.player_name, self.game_id)
+            if i_can_build_wonder:
+                stage = i_can_build_wonder
+                await self.send(text_data=json.dumps({"build_wonder": {"status":"success", "stage":stage}}))
+
+        if data.get("type") == "pick_card": # change to "pick_card"
             card_name = data.get("name")
             player_could_pick = await pick_card(self.game_id, card_name, self.player_name)
             if player_could_pick: # need to send the card to front-end

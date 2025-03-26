@@ -52,6 +52,61 @@ async def update_last_seen(game_id, player_name):
     now = time()
     await redis.hset(f"heartbeat:{game_id}", player_name, now)
 
+async def sell_card(player_name, game_id, card_name): 
+    redis = await get_redis_connection()
+    lock = Lock(redis, f"lock:game{game_id}", timeout=10)
+    try:
+        async with lock:
+            game = await get_game_from_redis(game_id, lock)
+            player = get_player_from_game(game, player_name)
+            cards_to_pick_from = player.cards_to_pick_from
+            for i in range(len(cards_to_pick_from)):
+                if cards_to_pick_from[i].name == card_name:
+                    cards_to_pick_from.pop(i)
+                    player.resources["coins"] += 3
+                    break
+            await insert_game_into_redis(game_id, game, lock)
+    except Exception as e:
+        print(f"could not sell the card: {card_name}, error: {e}")
+        traceback.print_exc()
+
+async def check_if_player_can_build_wonder(player_name, game):
+    player = get_player_from_game(game, player_name)
+    wonder = player.wonder
+    if wonder.stage1 != None and not wonder.stage1.purchased:
+        if check_if_player_has_resources_to_build_wonder(player, wonder.stage1):
+            wonder.stage1.purchased = True
+            return "1"
+    elif wonder.stage2 != None and not wonder.stage2.purchased:
+        if check_if_player_has_resources_to_build_wonder(player, wonder.stage2):
+            wonder.stage2.purchased = True
+            return "2"
+    elif wonder.stage3 != None and not wonder.stage3.purchased:
+        if check_if_player_has_resources_to_build_wonder(player, wonder.stage3):
+            wonder.stage3.purchased = True
+            return "3"
+    elif wonder.stage4 != None and not wonder.stage4.purchased:
+        if check_if_player_has_resources_to_build_wonder(player, wonder.stage4):
+            wonder.stage4.purchased = True
+            return "4"
+
+def check_if_player_has_resources_to_build_wonder(player, stage):
+    for resource, amount in stage.items():
+        if player.resources[resource] < amount:
+            return False
+    return True
+
+async def build_wonder(player_name, game_id):
+    redis = await get_redis_connection()
+    lock = Lock(redis, f"lock:game{game_id}", timeout=10)
+    try:
+        async with lock:
+            game = await get_game_from_redis(game_id, lock)
+            return await check_if_player_can_build_wonder(player_name, game)
+    except Exception as e:
+        print(f"could not build wonder, error: {e}")
+
+
 async def add_player_to_game(player_name, game_id):
     redis = await get_redis_connection()
     lock = Lock(redis, f"lock:game:{game_id}", timeout=10)  # why is the lock lock:game should it not be game: only?
@@ -263,7 +318,6 @@ async def get_player_cards(game_id, player_name):
 def player_can_pick_card(card, player): # need to check if the player have enough gold here as well
     print(f"{player.name} is trying to pick {card.name}")
     if card.symbol in player.symbols:
-        print("a")
         return True
     required_resources = card.cost.copy()
     resources_to_remove = []
@@ -279,10 +333,9 @@ def player_can_pick_card(card, player): # need to check if the player have enoug
         del required_resources[resource]
 
     if not required_resources:
-        print("b")
         return True
 
-    mixed_resources = player.mixed_resources
+    mixed_resources = player.mixed_resources # need to sort out mixed resources
     required_list = list(required_resources.keys())
 
     for resource_perm in permutations(required_list):
@@ -297,22 +350,89 @@ def player_can_pick_card(card, player): # need to check if the player have enoug
                     break
 
         if all(v <= 0 for v in remaining.values()):
-            print("c")
             return True
 
-    print("d")
     return False
 
 def add_card_to_player(game, player_name, card_name):
-    print("aaaa")
     player = get_player_from_game(game, player_name)
-    print(f"bbbb")
     for i, card in enumerate(player.cards_to_pick_from):
         if card.name == card_name:
             if player_can_pick_card(card, player):
+                add_card_resources_to_player(card, player)
                 player.cards.append(player.cards_to_pick_from.pop(i))
                 return True
     return False
+
+def add_wonder_resources_to_player_inventory(stage, player):
+    pass # NEED TO IMPLEMENT THIS!!!!
+def add_card_resources_to_player(card, player):
+    resolve_card_resources(card, player) # need to sort out resource choices
+
+def resolve_raw_material(card, player):
+    if card.wood > 0:
+        player.resources["wood"] += card.wood
+    if card.stone > 0:
+        player.resources["stone"] += card.stone
+    if card.clay > 0:
+        player.resources["clay"] += card.clay
+    if card.clay > 0:
+        player.resources["ore"] += card.ore
+
+def resolve_manufactured_good(card, player):
+    if card.cloth > 0:
+        player.resources["cloth"] += card.cloth
+    if card.papyrus > 0:
+        player.resources["papyrus"] += card.papyrus
+    if card.glass > 0:
+        player.resources["glass"] += card.glass
+
+def resolve_civilian_structure(card, player):
+    if card.victory_points > 0:
+        player.victory_points += card.victory_points
+
+def resolve_scientific_structure(card, player):
+    if card.compass > 0:
+        player.compass += card.compass
+    if card.gear > 0:
+        player.gear += card.gear
+    if card.tablet > 0:
+        player.tablet += card.tablet
+
+def commercial_structure(card, player):
+    if card.east_trading:
+        player.east_trading = True
+    if card.west_trading:
+        player.west_trading = True
+    if card.marketplace:
+        player.marketplace = True
+    if card.gold:
+        player.resources["coins"] += card.gold
+    if card.resource_choices:
+        for resource_choice in card.resource_choices["choices"]:
+            player.mixed_resouces.append(resource_choice)
+    if card.gain:
+        activity = card.gain["activity"]
+        card_colors = ["Red", "Green", "Yellow", "Purple", "Blue", "Brown", "Gray"]
+        for gain in card.gain["gain"]:
+            pass # implement this
+
+def resolve_card_resources(card, player):
+    if card.symbol: # If card has symbol, add it to player
+        for symbol in card.symbol:
+            player.symbols[symbol] = True
+    if card.color == "Brown":
+        resolve_raw_material(card, player)
+    elif card.color == "Gray":
+        resolve_manufactured_good(card, player)
+    elif card.color == "Blue":
+        resolve_civilian_structure(card, player)
+    elif card.color == "Green":
+        resolve_scientific_structure(card, player)
+    elif card.color == "Yellow":
+        pass # we only resolve yellow cards at the end of the game I think.
+
+
 
 def get_player_from_game(game, name):
     print("In get_player_from_game")
