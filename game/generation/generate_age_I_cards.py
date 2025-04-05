@@ -50,12 +50,12 @@ def generate_age_I_raw_material_cards(nr_of_players): # should we add cost as 0 
         raise Exception("nr_of_players must be 3-7")
 
 def generate_age_I_manufactured_goods(nr_of_players):
-    glassworks1 = ManufacturedGood(1, "Grey", "3+", "glassworks1", glass = 1)
-    glassworks2 = ManufacturedGood(1, "Grey", "6+", "glassworks2", glass = 1)
-    press1 = ManufacturedGood(1, "Grey", "3+", "press1", papyrus = 1)
-    press2 = ManufacturedGood(1, "Grey", "6+", "press2", papyrus = 1)
-    loom1 = ManufacturedGood(1, "Grey", "3+", "loom1", cloth = 1)
-    loom2 = ManufacturedGood(1, "Grey", "6+", "loom2", cloth = 1)
+    glassworks1 = ManufacturedGood(1, "Gray", "3+", "glassworks1", glass = 1)
+    glassworks2 = ManufacturedGood(1, "Gray", "6+", "glassworks2", glass = 1)
+    press1 = ManufacturedGood(1, "Gray", "3+", "press1", papyrus = 1)
+    press2 = ManufacturedGood(1, "Gray", "6+", "press2", papyrus = 1)
+    loom1 = ManufacturedGood(1, "Gray", "3+", "loom1", cloth = 1)
+    loom2 = ManufacturedGood(1, "Gray", "6+", "loom2", cloth = 1)
 
     three_players = [glassworks1, press1, loom1]
     six_players = [glassworks2, press2, loom2]
@@ -158,14 +158,14 @@ def generate_age_I_commerical_structures(nr_of_players):
     
 
 def generate_age_I_millitary_structures(nr_of_players):
-    stockade1 = MilitaryStructure(1, "Red", "3+", "stockade1", cost={"wood": 1}, shield=1)
-    stockade2 = MilitaryStructure(1, "Red", "7+", "stockade2", cost={"wood": 1}, shield=1)
+    stockade1 = MilitaryStructure(1, "Red", "3+", "stockade1", cost={"wood": 1}, millitary_strength=1)
+    stockade2 = MilitaryStructure(1, "Red", "7+", "stockade2", cost={"wood": 1}, millitary_strength=1)
 
-    barracks1 = MilitaryStructure(1, "Red", "3+", "barracks1", cost={"ore": 1}, shield=1)
-    barracks2 = MilitaryStructure(1, "Red", "5+", "barracks2", cost={"ore": 1}, shield=1)
+    barracks1 = MilitaryStructure(1, "Red", "3+", "barracks1", cost={"ore": 1}, millitary_strength=1)
+    barracks2 = MilitaryStructure(1, "Red", "5+", "barracks2", cost={"ore": 1}, millitary_strength=1)
 
-    guard_tower1 = MilitaryStructure(1, "Red", "3+", "guard_tower1", cost={"clay": 1}, shield=1)
-    guard_tower2 = MilitaryStructure(1, "Red", "4+", "guard_tower2", cost={"clay": 1}, shield=1)
+    guard_tower1 = MilitaryStructure(1, "Red", "3+", "guard_tower1", cost={"clay": 1}, millitary_strength=1)
+    guard_tower2 = MilitaryStructure(1, "Red", "4+", "guard_tower2", cost={"clay": 1}, millitary_strength=1)
 
     three_players = [stockade1, barracks1, guard_tower1]
     four_players = [guard_tower2]

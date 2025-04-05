@@ -4,14 +4,14 @@ def generate_wonders():
     rhodes = Wonder(
         "Rhodos_day.png", "ore",
         stage1=Stage({"victory_points": 3}, {"wood": 2}),
-        stage2=Stage({"shield": 2}, {"clay": 3}),
+        stage2=Stage({"millitary_strength": 2}, {"clay": 3}),
         stage3=Stage({"victory_points": 7}, {"ore": 4})
     )
 
     rhodes_night = Wonder(
         "Rhodos_night.png", "ore",
-        stage1=Stage({"victory_points": 3, "shield":1, "coin":3}, {"stone": 3}),
-        stage2=Stage({"victory_points": 4, "coin":4, "shield": 1}, {"ore": 4})
+        stage1=Stage({"victory_points": 3, "millitary_strength":1, "coin":3}, {"stone": 3}),
+        stage2=Stage({"victory_points": 4, "coin":4, "millitary_strength": 1}, {"ore": 4})
     )
 
     alexandria = Wonder(

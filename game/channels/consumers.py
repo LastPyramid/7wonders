@@ -5,7 +5,7 @@ from ..redis.async_redis_utils import (
     add_player_websocket_group, get_player_channel_names, get_players,
     lock_game, insert_game_into_redis, pick_wonder, check_if_everyone_has_picked_a_wonder,
     pick_card, check_if_everyone_has_picked_a_card, setup_next_age, setup_next_turn,
-    get_player_cards, sell_card, build_wonder)
+    get_player_cards, sell_card, build_wonder, get_player_resources)
 from channels.generic.websocket import AsyncWebsocketConsumer
 
 class GameConsumer(AsyncWebsocketConsumer):
@@ -58,8 +58,6 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def send_cards(self, channel_names, game):
         age = game.age * "I"
-        print(channel_names)
-        print("heeey")
         for player_name, channel_name in channel_names.items():
             cards = []
             for player in game.players:
@@ -152,6 +150,12 @@ class GameConsumer(AsyncWebsocketConsumer):
             if i_can_build_wonder:
                 stage = i_can_build_wonder
                 await self.send(text_data=json.dumps({"build_wonder": {"status":"success", "stage":stage}}))
+
+        if data.get("type") == "get_resources":
+            print("getting resources!")
+            resources = await get_player_resources(self.player_name, self.game_id)
+            print(f"sending resources: {resources}")
+            await self.send(text_data=json.dumps({"resources": resources}))
 
         if data.get("type") == "pick_card": # change to "pick_card"
             card_name = data.get("name")

@@ -25,13 +25,13 @@ def setup_game(list_of_players):
 		players.append(player)
 
 	left_player = players[-1]
-	for i, player in range(len(players)-1):
+	for i in range(len(players)-1):
 		right_player = players[i+1]
-		player.left_player = left_player
-		player.right_player = right_player
-		left_player = player
-	player[-1].left_player = player[-2]
-	player[-1].right_player = player[1]
+		players[i].left_player = left_player
+		players[i].right_player = right_player
+		left_player = players[i]
+	players[-1].left_player = players[-2]
+	players[-1].right_player = players[0]
 
 	
     # Give players cards

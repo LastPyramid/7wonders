@@ -79,29 +79,29 @@ def generate_age_III_scientific_structures(nr_of_players):
 
 def generate_age_III_commercial_structures(nr_of_players):
     haven1 = CommercialStructure(3, "Yellow", "3+", "Haven", cost={"wood": 1, "ore": 1, "cloth": 1, "symbol":"Barrel"},
-            gain={"gain": {"coin": 1, "victory_point": 1}, "condition": {"location": ["self"], "activity": "Brown"}})
+            gain={"gain": {"coins": 1, "victory_point": 1}, "condition": {"location": ["self"], "activity": "Brown"}})
     haven2 = CommercialStructure(3, "Yellow", "4+", "Haven", cost={"wood": 1, "ore": 1, "cloth": 1, "symbol":"Barrel"},
-            gain={"gain": {"coin": 1, "victory_point": 1}, "condition": {"location": ["self"], "activity": "Brown"}})
+            gain={"gain": {"coins": 1, "victory_point": 1}, "condition": {"location": ["self"], "activity": "Brown"}})
 
     lighthouse1 = CommercialStructure(3, "Yellow", "3+", "Lighthouse", cost={"stone": 1, "glass": 1, "symbol":"Lighthouse"},
-            gain={"gain": {"coin": 1, "victory_point": 1}, "condition": {"location": ["self"], "activity": "Yellow"}})
+            gain={"gain": {"coins": 1, "victory_point": 1}, "condition": {"location": ["self"], "activity": "Yellow"}})
     lighthouse2 = CommercialStructure(3, "Yellow", "6+", "Lighthouse", cost={"stone": 1, "glass": 1, "symbol":"Lighthouse"},
-            gain={"gain": {"coin": 1, "victory_point": 1}, "condition": {"location": ["self"], "activity": "Yellow"}})
+            gain={"gain": {"coins": 1, "victory_point": 1}, "condition": {"location": ["self"], "activity": "Yellow"}})
 
     chamber_of_commerce1 = CommercialStructure(3, "Yellow", "4+", "Chamber Of Commerce", cost={"clay": 2, "papyrus": 1},
-            gain={"gain": {"coin": 2, "victory_point": 2}, "condition": {"location": ["self"], "activity": "Gray"}})
+            gain={"gain": {"coins": 2, "victory_point": 2}, "condition": {"location": ["self"], "activity": "Gray"}})
     chamber_of_commerce2 = CommercialStructure(3, "Yellow", "6+", "Chamber Of Commerce", cost={"clay": 2, "papyrus": 1},
-            gain={"gain": {"coin": 2, "victory_point": 2}, "condition": {"location": ["self"], "activity": "Gray"}})
+            gain={"gain": {"coins": 2, "victory_point": 2}, "condition": {"location": ["self"], "activity": "Gray"}})
 
     arena1 = CommercialStructure(3, "Yellow", "3+", "Arena", cost={"stone": 2, "ore": 1, "symbol":"Lightning Bolt"},
-            gain={"gain": {"coin": 3, "victory_point": 1}, "condition": {"location": ["self"], "activity": "Stage of Wonders"}})
+            gain={"gain": {"coins": 3, "victory_point": 1}, "condition": {"location": ["self"], "activity": "Stage of Wonders"}})
     arena2 = CommercialStructure(3, "Yellow", "5+", "Arena", cost={"stone": 2, "ore": 1, "symbol":"Lightning Bolt"},
-            gain={"gain": {"coin": 3, "victory_point": 1}, "condition": {"location": ["self"], "activity": "Stage of Wonders"}})
+            gain={"gain": {"coins": 3, "victory_point": 1}, "condition": {"location": ["self"], "activity": "Stage of Wonders"}})
 
     ludus1 = CommercialStructure(3, "Yellow", "5+", "Ludus", cost={"stone": 1, "ore": 1},
-            gain={"gain": {"coin": 3, "victory_point": 1}, "condition": {"location": ["self"], "activity": "Red"}})
+            gain={"gain": {"coins": 3, "victory_point": 1}, "condition": {"location": ["self"], "activity": "Red"}})
     ludus2 = CommercialStructure(3, "Yellow", "7+", "Ludus", cost={"stone": 2, "ore": 1},
-            gain={"gain": {"coin": 3, "victory_point": 1}, "condition": {"location": ["self"], "activity": "Red"}})
+            gain={"gain": {"coins": 3, "victory_point": 1}, "condition": {"location": ["self"], "activity": "Red"}})
 
     three_players = [haven1, lighthouse1, arena1]
     four_players = [haven2, chamber_of_commerce1]
@@ -122,20 +122,20 @@ def generate_age_III_commercial_structures(nr_of_players):
         raise Exception("nr_of_players should be 3-7")
 
 def generate_age_III_military_structures(nr_of_players):
-    fortifications1 = MilitaryStructure(3, "Red", "3+", "Fortifications", cost={"stone": 3, "clay": 1, "symbol":"Wall"}, shield=3)
-    fortifications2 = MilitaryStructure(3, "Red", "7+", "Fortifications", cost={"stone": 3, "clay": 1, "symbol":"Wall"}, shield=3)
+    fortifications1 = MilitaryStructure(3, "Red", "3+", "Fortifications", cost={"stone": 3, "clay": 1, "symbol":"Wall"}, millitary_strength=3)
+    fortifications2 = MilitaryStructure(3, "Red", "7+", "Fortifications", cost={"stone": 3, "clay": 1, "symbol":"Wall"}, millitary_strength=3)
 
-    circus1 = MilitaryStructure(3, "Red", "4+", "Circus", cost={"clay": 3, "ore": 1, "symbol":"Helmet"}, shield=3)
-    circus2 = MilitaryStructure(3, "Red", "6+", "Circus", cost={"clay": 3, "ore": 1, "symbol":"Helmet"}, shield=3)
+    circus1 = MilitaryStructure(3, "Red", "4+", "Circus", cost={"clay": 3, "ore": 1, "symbol":"Helmet"}, millitary_strength=3)
+    circus2 = MilitaryStructure(3, "Red", "6+", "Circus", cost={"clay": 3, "ore": 1, "symbol":"Helmet"}, millitary_strength=3)
 
-    arsenal1 = MilitaryStructure(3, "Red", "3+", "Arsenal", cost={"wood": 2, "ore": 1, "cloth": 1}, shield=3)
-    arsenal2 = MilitaryStructure(3, "Red", "5+", "Arsenal", cost={"wood": 2, "ore": 1, "cloth": 1}, shield=3)
+    arsenal1 = MilitaryStructure(3, "Red", "3+", "Arsenal", cost={"wood": 2, "ore": 1, "cloth": 1}, millitary_strength=3)
+    arsenal2 = MilitaryStructure(3, "Red", "5+", "Arsenal", cost={"wood": 2, "ore": 1, "cloth": 1}, millitary_strength=3)
 
-    siege_workshop1 = MilitaryStructure(3, "Red", "3+", "Siege Workshop", cost={"clay": 3, "wood": 1, "symbol":"Saw"}, shield=3)
-    siege_workshop2 = MilitaryStructure(3, "Red", "5+", "Siege Workshop", cost={"clay": 3, "wood": 1, "symbol":"Saw"}, shield=3)
+    siege_workshop1 = MilitaryStructure(3, "Red", "3+", "Siege Workshop", cost={"clay": 3, "wood": 1, "symbol":"Saw"}, millitary_strength=3)
+    siege_workshop2 = MilitaryStructure(3, "Red", "5+", "Siege Workshop", cost={"clay": 3, "wood": 1, "symbol":"Saw"}, millitary_strength=3)
 
-    castrum1 = MilitaryStructure(3, "Red", "4+", "Castrum", cost={"clay": 3, "wood": 1, "papyrus":1}, shield=3)
-    castrum2 = MilitaryStructure(3, "Red", "7+", "Castrum", cost={"clay": 3, "wood": 1, "papyrus":1}, shield=3)
+    castrum1 = MilitaryStructure(3, "Red", "4+", "Castrum", cost={"clay": 3, "wood": 1, "papyrus":1}, millitary_strength=3)
+    castrum2 = MilitaryStructure(3, "Red", "7+", "Castrum", cost={"clay": 3, "wood": 1, "papyrus":1}, millitary_strength=3)
 
     three_players = [fortifications1, arsenal1, siege_workshop1]
     four_players = [circus1, castrum1]

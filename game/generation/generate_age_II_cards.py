@@ -115,11 +115,11 @@ def generate_age_II_commercial_structures(nr_of_players):
     forum2 = CommercialStructure(2, "Yellow", "6+", "Forum", cost={"clay": 2, "symbol":"Table"}, resource_choices={"choices": [{"glass": 1, "papyrus": 1, "cloth": 1}]}, symbol=["Barrel"])
     forum3 = CommercialStructure(2, "Yellow", "7+", "Forum", cost={"clay": 2, "symbol":"Table"}, resource_choices={"choices": [{"glass": 1, "papyrus": 1, "cloth": 1}]}, symbol=["Barrel"])
 
-    vineyard1 = CommercialStructure(2, "Yellow", "3+", "Vineyard", gain={"gain": {"coin": 1}, "condition": {"location": ["left", "right", "self"], "activity": "Brown"}})
-    vineyard2 = CommercialStructure(2, "Yellow", "6+", "Vineyard", gain={"gain": {"coin": 1}, "condition": {"location": ["left", "right", "self"], "activity": "Brown"}})
+    vineyard1 = CommercialStructure(2, "Yellow", "3+", "Vineyard", gain={"gain": {"coins": 1}, "location": ["left", "right", "self"], "activity": "Brown"})
+    vineyard2 = CommercialStructure(2, "Yellow", "6+", "Vineyard", gain={"gain": {"coins": 1}, "location": ["left", "right", "self"], "activity": "Brown"})
 
-    bazaar1 = CommercialStructure(2, "Yellow", "4+", "Bazaar", gain={"gain": {"coin": 2}, "condition": {"location": ["left", "right", "self"], "activity": "Yellow"}})
-    bazaar2 = CommercialStructure(2, "Yellow", "7+", "Bazaar", gain={"gain": {"coin": 2}, "condition": {"location": ["left", "right", "self"], "activity": "Yellow"}})
+    bazaar1 = CommercialStructure(2, "Yellow", "4+", "Bazaar", gain={"gain": {"coins": 2}, "location": ["left", "right", "self"], "activity": "Yellow"})
+    bazaar2 = CommercialStructure(2, "Yellow", "7+", "Bazaar", gain={"gain": {"coins": 2}, "location": ["left", "right", "self"], "activity": "Yellow"})
 
     three_players = [caravansery1, forum1, vineyard1]
     four_players = [bazaar1]
@@ -141,18 +141,18 @@ def generate_age_II_commercial_structures(nr_of_players):
 
 
 def generate_age_II_military_structures(nr_of_players):
-    walls1 = MilitaryStructure(2, "Red", "3+", "Walls", cost={"stone": 3}, shield=2, symbol=["Wall"])
-    walls2 = MilitaryStructure(2, "Red", "7+", "Walls", cost={"stone": 3}, shield=2, symbol=["Wall"])
+    walls1 = MilitaryStructure(2, "Red", "3+", "Walls", cost={"stone": 3}, millitary_strength=2, symbol=["Wall"])
+    walls2 = MilitaryStructure(2, "Red", "7+", "Walls", cost={"stone": 3}, millitary_strength=2, symbol=["Wall"])
 
-    training_grounds1 = MilitaryStructure(2, "Red", "4+", "Training Ground", cost={"wood": 1, "ore": 2}, shield=2, symbol=["Helmet"])
-    training_grounds2 = MilitaryStructure(2, "Red", "6+", "Training Ground", cost={"wood": 1, "ore": 2}, shield=2, symbol=["Helmet"])
-    training_grounds3 = MilitaryStructure(2, "Red", "7+", "Training Ground", cost={"wood": 1, "ore": 2}, shield=2, symbol=["Helmet"])
+    training_grounds1 = MilitaryStructure(2, "Red", "4+", "Training Ground", cost={"wood": 1, "ore": 2}, millitary_strength=2, symbol=["Helmet"])
+    training_grounds2 = MilitaryStructure(2, "Red", "6+", "Training Ground", cost={"wood": 1, "ore": 2}, millitary_strength=2, symbol=["Helmet"])
+    training_grounds3 = MilitaryStructure(2, "Red", "7+", "Training Ground", cost={"wood": 1, "ore": 2}, millitary_strength=2, symbol=["Helmet"])
 
-    stables1 = MilitaryStructure(2, "Red", "3+", "Stables", cost={"wood": 1, "ore": 1, "clay": 1, "symbol":"Horseshoe"}, shield=2)
-    stables2 = MilitaryStructure(2, "Red", "5+", "Stables", cost={"wood": 1, "ore": 1, "clay": 1, "symbol":"Horseshoe"}, shield=2)
+    stables1 = MilitaryStructure(2, "Red", "3+", "Stables", cost={"wood": 1, "ore": 1, "clay": 1, "symbol":"Horseshoe"}, millitary_strength=2)
+    stables2 = MilitaryStructure(2, "Red", "5+", "Stables", cost={"wood": 1, "ore": 1, "clay": 1, "symbol":"Horseshoe"}, millitary_strength=2)
 
-    archery_range1 = MilitaryStructure(2, "Red", "3+", "Archery Range", cost={"wood": 2, "ore": 1, "symbol":"Dart Board"}, shield=2)
-    archery_range2 = MilitaryStructure(2, "Red", "6+", "Archery Range", cost={"wood": 2, "ore": 1, "symbol":"Dart Board"}, shield=2)
+    archery_range1 = MilitaryStructure(2, "Red", "3+", "Archery Range", cost={"wood": 2, "ore": 1, "symbol":"Dart Board"}, millitary_strength=2)
+    archery_range2 = MilitaryStructure(2, "Red", "6+", "Archery Range", cost={"wood": 2, "ore": 1, "symbol":"Dart Board"}, millitary_strength=2)
 
     three_players = [walls1, stables1, archery_range1]
     four_players = [training_grounds1]

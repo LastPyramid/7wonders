@@ -6,6 +6,7 @@ from channels.layers import get_channel_layer
 from ..game.models import Game, Wonder
 from ..game.game_logic import start_age_II, start_age_III
 from itertools import permutations
+from .resolve_cards import resolve_millitary_conflicts, add_card_resources_to_player
 
 import traceback
 
@@ -105,7 +106,31 @@ async def build_wonder(player_name, game_id):
             return await check_if_player_can_build_wonder(player_name, game)
     except Exception as e:
         print(f"could not build wonder, error: {e}")
+        traceback.print_exc()
 
+async def get_player_resources(player_name, game_id):
+    redis = await get_redis_connection()
+    lock = Lock(redis, f"lock:game{game_id}", timeout=10)
+    try:
+        async with lock:
+            game = await get_game_from_redis(game_id, lock)
+            player = get_player_from_game(game, player_name)
+            return get_all_player_resources(player)
+    except Exception as e:
+        print(f"could not get player resources, error: {e}")
+        traceback.print_exc()
+
+def get_all_player_resources(player):
+    resources = player.resources
+    resources["symbols"] = []
+    for symbol in player.symbols.keys():
+        resources["symbols"].append(symbol)
+    resources["mixed_resources"] = player.mixed_resources
+    resources["victory_token"] = player.victory_token
+    resources["victory_points"] = player.victory_points
+    resources["defeat_token"] = player.defeat_token
+    resources["millitary_strength"] = player.millitary_strength
+    return resources
 
 async def add_player_to_game(player_name, game_id):
     redis = await get_redis_connection()
@@ -289,20 +314,6 @@ async def pick_card(game_id, card_name, player_name):
         print(f"Could not pick a card, error: {e}")
         traceback.print_exc()
 
-async def get_player_resources(game_id, player_name):
-    redis = await get_redis_connection()
-    lock = Lock(redis, f"lock:game:{game_id}", timeout=30)
-    try:
-        async with lock:
-            game = await get_game_from_redis(game_id, lock)
-            player = get_player_from_game(game, player_name)
-            resources = player.resources
-            await insert_game_into_redis(game_id, game, lock)
-            return resources
-    except Exception as e:
-        print(f"Could not pick a card, error: {e}")
-        traceback.print_exc()
-        j
 async def get_player_cards(game_id, player_name):
     redis = await get_redis_connection()
     lock = Lock(redis, f"lock:game:{game_id}", timeout=30)
@@ -310,15 +321,18 @@ async def get_player_cards(game_id, player_name):
         async with lock:
             game = await get_game_from_redis(game_id, lock)
             player = get_player_from_game(game, player_name)
-            return [card.name for card in player.cards]
+            print(f"August cards: {player.cards}")
+            return [card.name for card in player.cards.values()]
     except Exception as e:
         print(f"Could not get cards, error: {e}")
         traceback.print_exc()
 
 def player_can_pick_card(card, player): # need to check if the player have enough gold here as well
     print(f"{player.name} is trying to pick {card.name}")
-    if card.symbol in player.symbols:
-        return True
+    if card.cost:
+        if "symbol" in card.cost:
+            if card.cost["symbol"] in player.symbols:
+                return True
     required_resources = card.cost.copy()
     resources_to_remove = []
     
@@ -360,79 +374,13 @@ def add_card_to_player(game, player_name, card_name):
         if card.name == card_name:
             if player_can_pick_card(card, player):
                 add_card_resources_to_player(card, player)
-                player.cards.append(player.cards_to_pick_from.pop(i))
+                card = player.cards_to_pick_from.pop(i)
+                if card.name in player.cards:
+                    raise Exception("You can not have duplicate cards")
+                else:
+                    player.cards[card.name] = card
                 return True
     return False
-
-def add_wonder_resources_to_player_inventory(stage, player):
-    pass # NEED TO IMPLEMENT THIS!!!!
-def add_card_resources_to_player(card, player):
-    resolve_card_resources(card, player) # need to sort out resource choices
-
-def resolve_raw_material(card, player):
-    if card.wood > 0:
-        player.resources["wood"] += card.wood
-    if card.stone > 0:
-        player.resources["stone"] += card.stone
-    if card.clay > 0:
-        player.resources["clay"] += card.clay
-    if card.clay > 0:
-        player.resources["ore"] += card.ore
-
-def resolve_manufactured_good(card, player):
-    if card.cloth > 0:
-        player.resources["cloth"] += card.cloth
-    if card.papyrus > 0:
-        player.resources["papyrus"] += card.papyrus
-    if card.glass > 0:
-        player.resources["glass"] += card.glass
-
-def resolve_civilian_structure(card, player):
-    if card.victory_points > 0:
-        player.victory_points += card.victory_points
-
-def resolve_scientific_structure(card, player):
-    if card.compass > 0:
-        player.compass += card.compass
-    if card.gear > 0:
-        player.gear += card.gear
-    if card.tablet > 0:
-        player.tablet += card.tablet
-
-def commercial_structure(card, player):
-    if card.east_trading:
-        player.east_trading = True
-    if card.west_trading:
-        player.west_trading = True
-    if card.marketplace:
-        player.marketplace = True
-    if card.gold:
-        player.resources["coins"] += card.gold
-    if card.resource_choices:
-        for resource_choice in card.resource_choices["choices"]:
-            player.mixed_resouces.append(resource_choice)
-    if card.gain:
-        activity = card.gain["activity"]
-        card_colors = ["Red", "Green", "Yellow", "Purple", "Blue", "Brown", "Gray"]
-        for gain in card.gain["gain"]:
-            pass # implement this
-
-def resolve_card_resources(card, player):
-    if card.symbol: # If card has symbol, add it to player
-        for symbol in card.symbol:
-            player.symbols[symbol] = True
-    if card.color == "Brown":
-        resolve_raw_material(card, player)
-    elif card.color == "Gray":
-        resolve_manufactured_good(card, player)
-    elif card.color == "Blue":
-        resolve_civilian_structure(card, player)
-    elif card.color == "Green":
-        resolve_scientific_structure(card, player)
-    elif card.color == "Yellow":
-        pass # we only resolve yellow cards at the end of the game I think.
-
-
 
 def get_player_from_game(game, name):
     print("In get_player_from_game")
@@ -528,27 +476,6 @@ async def setup_next_turn(game_id):
     except Exception as e:
         print(f"could not set up new age, error: {e}")
         traceback.print_exc()
-
-def resolve_millitary_conflicts(players, age):
-    for i in range(1, len(players)-1, 1):
-        calculate_millitary_conflict_points(players[i-1], players[i], players[i+1])
-    calculate_millitary_conflict_points(players[-1], players[0], players[1])
-    calculate_millitary_conflict_points(players[-2], players[-1], players[0])
-
-def calculate_millitary_conflict_points(left_player, player, right_player, age):
-    points_per_win = 1
-    if age == 2:
-        points_per_win = 3
-    elif age == 3:
-        points_per_win = 5
-    if player.millitary_strength > left_player.millitary_strength:
-        player.victory_token += points_per_win
-    elif player.millitary_strength < left_player.millitary_strength:
-        player.defeat_token += 1
-    elif player.millitary_strength > right_player.millitary_strength:
-        player.victory_token += points_per_win
-    elif player.millitary_strength < right_player.millitary_strength:
-        player.defeat_token += 1
 
 async def setup_player_resources(game):
     players = game.players
