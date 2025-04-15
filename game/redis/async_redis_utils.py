@@ -1,22 +1,14 @@
-import aioredis
 from itertools import permutations
 from aioredis.lock import Lock
 from time import time
 from channels.layers import get_channel_layer
-from ..game.models import Game, Wonder
-from ..game.game_logic import start_age_II, start_age_III
+from ..game.models import Wonder
 from itertools import permutations
-from .resolve_cards import resolve_millitary_conflicts, add_card_resources_to_player
+from .resolve_cards import add_card_resources_to_player
+from .setups import setup_player_resources
+from .common import get_redis_connection, get_game_from_redis, insert_game_into_redis
 
 import traceback
-
-redis = None  # Global Redis connection object
-
-async def get_redis_connection():
-    global redis
-    if not redis:
-        redis = await aioredis.from_url("redis://127.0.0.1:6379", decode_responses=True)
-    return redis
 
 async def get_players(game_id):
     redis = await get_redis_connection()
@@ -55,7 +47,7 @@ async def update_last_seen(game_id, player_name):
 
 async def sell_card(player_name, game_id, card_name): 
     redis = await get_redis_connection()
-    lock = Lock(redis, f"lock:game{game_id}", timeout=10)
+    lock = Lock(redis, f"lock:game:{game_id}", timeout=10)
     try:
         async with lock:
             game = await get_game_from_redis(game_id, lock)
@@ -71,54 +63,106 @@ async def sell_card(player_name, game_id, card_name):
         print(f"could not sell the card: {card_name}, error: {e}")
         traceback.print_exc()
 
-async def check_if_player_can_build_wonder(player_name, game):
+async def check_if_player_can_build_wonder_stage(player_name, game):
     player = get_player_from_game(game, player_name)
     wonder = player.wonder
     if wonder.stage1 != None and not wonder.stage1.purchased:
-        if check_if_player_has_resources_to_build_wonder(player, wonder.stage1):
+        if check_if_player_has_resources_to_build_wonder_stage(player, wonder.stage1):
             wonder.stage1.purchased = True
             return "1"
     elif wonder.stage2 != None and not wonder.stage2.purchased:
-        if check_if_player_has_resources_to_build_wonder(player, wonder.stage2):
+        if check_if_player_has_resources_to_build_wonder_stage(player, wonder.stage2):
             wonder.stage2.purchased = True
             return "2"
     elif wonder.stage3 != None and not wonder.stage3.purchased:
-        if check_if_player_has_resources_to_build_wonder(player, wonder.stage3):
+        if check_if_player_has_resources_to_build_wonder_stage(player, wonder.stage3):
             wonder.stage3.purchased = True
             return "3"
     elif wonder.stage4 != None and not wonder.stage4.purchased:
-        if check_if_player_has_resources_to_build_wonder(player, wonder.stage4):
+        if check_if_player_has_resources_to_build_wonder_stage(player, wonder.stage4):
             wonder.stage4.purchased = True
             return "4"
 
-def check_if_player_has_resources_to_build_wonder(player, stage):
+def check_if_player_has_resources_to_build_wonder_stage(player, stage):
     for resource, amount in stage.items():
         if player.resources[resource] < amount:
             return False
     return True
 
-async def build_wonder(player_name, game_id):
+async def build_wonder_stage(player_name, game_id):
     redis = await get_redis_connection()
-    lock = Lock(redis, f"lock:game{game_id}", timeout=10)
+    lock = Lock(redis, f"lock:game:{game_id}", timeout=10)
     try:
         async with lock:
             game = await get_game_from_redis(game_id, lock)
-            return await check_if_player_can_build_wonder(player_name, game)
+            return await check_if_player_can_build_wonder_stage(player_name, game)
     except Exception as e:
         print(f"could not build wonder, error: {e}")
         traceback.print_exc()
 
 async def get_player_resources(player_name, game_id):
     redis = await get_redis_connection()
-    lock = Lock(redis, f"lock:game{game_id}", timeout=10)
+    lock = Lock(redis, f"lock:game:{game_id}", timeout=10)
     try:
         async with lock:
             game = await get_game_from_redis(game_id, lock)
+            print(f"player_name: {player_name}")
             player = get_player_from_game(game, player_name)
+            print(f"before i call get_all_player_resources game: {game} player: {player}")
             return get_all_player_resources(player)
     except Exception as e:
         print(f"could not get player resources, error: {e}")
         traceback.print_exc()
+
+async def get_player_state(player_id, game_id): # need to solve this, get_player_resources does not take player_id
+    resources = await get_player_resources(player_id, game_id) # once
+    wonder = await get_wonder(player_id, game_id)
+    cards = await get_player_cards(player_id, game_id)
+    return resources, wonder, cards
+
+async def get_player_ids(player_name, game_id):
+    redis = await get_redis_connection()
+    lock = Lock(redis, f"lock:game:{game_id}", timeout=10)
+    try:
+        async with lock:
+            game = await get_game_from_redis(game_id, lock)
+            player_ids = [player.player_id for player in game.players]
+            player = get_player_from_game(game, player_name)
+            player_id = player.player_id
+            player_id_left = player.left_player.player_id
+            player_id_right = player.right_player.player_id
+            print(player_ids, player_id, player_id_left, player_id_right)
+            return player_ids, player_id, player_id_left, player_id_right
+    except Exception as e:
+        print(f"could not get player ids")
+        traceback.print_exc()
+
+async def get_wonder(player_name, game_id):
+    redis = await get_redis_connection()
+    lock = Lock(redis, f"lock:game:{game_id}", timeout=10)
+    try:
+        async with lock:
+            game = await get_game_from_redis(game_id, lock)
+            player = get_player_from_game(game, player_name)
+            wonder = player.wonder
+            wonder_name = wonder.name
+            if wonder.stage4 != None and wonder.stage4.purchased == True:
+                return {"stage": "4", "name":wonder_name}
+            elif wonder.stage3 != None and wonder.stage3.purchased == True:
+                return {"stage": "3", "name":wonder_name}
+            elif wonder.stage2 != None and wonder.stage2.purchased == True:
+                return {"stage": "2", "name":wonder_name}
+            elif wonder.stage1 != None and wonder.stage1.purchased == True:
+                return {"stage": "1", "name":wonder_name}
+            else:
+                return {"stage": "0", "name":wonder_name}
+    except Exception as e:
+        print(f"could not get player resources, error: {e}")
+        traceback.print_exc()
+
+def insert_temporary_resource(game, player_name, resource, amount):
+    player = get_player_from_game(game, player_name)
+    player.temporary_resources[resource] += amount
 
 def get_all_player_resources(player):
     resources = player.resources
@@ -171,7 +215,7 @@ async def lock_game(game_id):
 
 async def get_player_channel_names(game_id):
     redis = await get_redis_connection()
-    lock = Lock(redis, f"lock:game:{game_id}", timeout=10)  # 10-second lock
+    lock = Lock(redis, f"lock:game:{game_id}", timeout=10)
     try:
         async with lock:
             game_data = await redis.hgetall(f"game:{game_id}")
@@ -212,7 +256,7 @@ async def remove_player_from_channels_websocket_group(player_name):
 async def remove_player_from_game(player_name, game_id):
     print("Removing player from game...")
     redis = await get_redis_connection()
-    lock = Lock(redis, f"lock:game:{game_id}", timeout=10)  # 10-second lock
+    lock = Lock(redis, f"lock:game:{game_id}", timeout=10)
     try:
         async with lock:
             game_data = await redis.hgetall(f"game:{game_id}")
@@ -228,21 +272,6 @@ async def remove_player_from_game(player_name, game_id):
         print(f"Could not remove player:{player_name} {e}")
         traceback.print_exc()
     return "ok"
-
-async def insert_game_into_redis(game_id, game, lock=None):
-    redis = await get_redis_connection()
-    if not lock:
-        print("had to create a lock in insert_game_into_redis")
-        lock = Lock(redis, f"lock:game:{game_id}", timeout=10)
-        async with lock:
-            serialized_game = str(Game.to_dict(game))
-            await redis.hset(f"game:{game_id}", "game", serialized_game)
-    try:
-        serialized_game = str(Game.to_dict(game))
-        await redis.hset(f"game:{game_id}", "game", serialized_game)
-    except Exception as e:
-        print(f"Could not insert game into redis error: {e}")
-        traceback.print_exc()
 
 async def pick_wonder(game_id, player_name, wonder_name):
     redis = await get_redis_connection()
@@ -280,19 +309,30 @@ async def check_if_everyone_has_picked_a_wonder(game_id):
         print(f"could not check if everyone has picked a wonder, error: {e}")
         traceback.print_exc()
 
-async def check_if_everyone_has_picked_a_card(game_id):
+async def check_if_everyone_have_made_a_picking_decision(game_id):
     redis = await get_redis_connection()
     lock = Lock(redis, f"lock:game:{game_id}", timeout=30)
     try:
         async with lock:
             game = await get_game_from_redis(game_id, lock)
-            number_of_unpicked_cards = 7 - game.turn
-            for player in game.players:
-                if number_of_unpicked_cards != len(player.cards_to_pick_from):
-                    return False
-            return game
+            all_players_have_made_a_picking_decision = all(game.picking_choices.values())
+            if all_players_have_made_a_picking_decision:
+                return game
+            else:
+                return False
     except Exception as e:
         print(f"could not check if everyone has picked a CARD, error: {e}")
+        traceback.print_exc()
+
+async def get_player_decisions(game_id):
+    redis = await get_redis_connection()
+    lock = Lock(redis, f"lock:game:{game_id}", timeout=30)
+    try:
+        async with lock:
+            game = await get_game_from_redis(game_id, lock)
+            return game.picking_choices
+    except Exception as e:
+        print(f"Could not get picking_choices")
         traceback.print_exc()
 
 async def pick_card(game_id, card_name, player_name):
@@ -307,14 +347,13 @@ async def pick_card(game_id, card_name, player_name):
                 print(f"{card_name} was added to the players deck!")
                 return True
             else:
-                print("something went wrong adding card to the players deck")
-                return False
+                raise Exception()
 
     except Exception as e:
-        print(f"Could not pick a card, error: {e}")
+        print(f"Could not pick a card this should not happen, error: {e}")
         traceback.print_exc()
 
-async def get_player_cards(game_id, player_name):
+async def get_player_cards(player_name, game_id):
     redis = await get_redis_connection()
     lock = Lock(redis, f"lock:game:{game_id}", timeout=30)
     try:
@@ -327,80 +366,93 @@ async def get_player_cards(game_id, player_name):
         print(f"Could not get cards, error: {e}")
         traceback.print_exc()
 
-def player_can_pick_card(card, player): # need to check if the player have enough gold here as well
-    print(f"{player.name} is trying to pick {card.name}")
-    if card.cost:
-        if "symbol" in card.cost:
-            if card.cost["symbol"] in player.symbols:
-                return True
-    required_resources = card.cost.copy()
-    resources_to_remove = []
+def get_card_from_cards_to_pick_from(player, card_name):
+    for card in player.cards_to_pick_from:
+        if card.name == card_name:
+            return card
+
+async def player_can_pick_card(player_name, game_id, card_name):
+    redis = await get_redis_connection()
+    lock = Lock(redis, f"lock:game:{game_id}", timeout=30)
+    try:
+        async with lock:
+            game = await get_game_from_redis(game_id, lock)
+            player = get_player_from_game(game, player_name)
+            card = get_card_from_cards_to_pick_from(player, card_name)
+            for player_card_name in player.cards.keys(): # Can not have card with the same name
+                if card_name == player_card_name:
+                    return False
     
-    for resource, amount in required_resources.items():
-        if resource in player.resources:
-            if player.resources[resource] >= amount:
-                resources_to_remove.append(resource)
-            else:
-                required_resources[resource] -= player.resources[resource]
+            print(f"{player.name} is trying to pick {card.name}")
+            if card.cost:
+                if "symbol" in card.cost:
+                    if card.cost["symbol"] in player.symbols:
+                        return True
+            required_resources = card.cost.copy()
+            resources_to_remove = []
+    
+            for resource, amount in required_resources.items():
+                if resource in player.resources:
+                    if player.resources[resource] >= amount:
+                        resources_to_remove.append(resource)
+                    else:
+                        required_resources[resource] -= player.resources[resource]
 
-    for resource in resources_to_remove:
-        del required_resources[resource]
+            for resource in resources_to_remove:
+                del required_resources[resource]
 
-    if not required_resources:
-        return True
+            if not required_resources:
+                return True
 
-    mixed_resources = player.mixed_resources # need to sort out mixed resources
-    required_list = list(required_resources.keys())
+            mixed_resources = player.mixed_resources # need to sort out mixed resources
+            required_list = list(required_resources.keys())
 
-    for resource_perm in permutations(required_list):
-        remaining = required_resources.copy()
-        used_flex = set()
+            for resource_perm in permutations(required_list):
+                remaining = required_resources.copy()
+                used_flex = set()
 
-        for req in resource_perm:
-            for i, options in enumerate(mixed_resources):
-                if req in options and i not in used_flex:
-                    remaining[req] -= 1
-                    used_flex.add(i)
-                    break
+                for req in resource_perm:
+                    for i, options in enumerate(mixed_resources):
+                        if req in options and i not in used_flex:
+                            remaining[req] -= 1
+                            used_flex.add(i)
+                            break
 
-        if all(v <= 0 for v in remaining.values()):
-            return True
+                if all(v <= 0 for v in remaining.values()):
+                    return True
 
-    return False
+            return False
+    except Exception as e:
+        print(f"Could not pick a card, error: {e}")
+        traceback.print_exc()
 
 def add_card_to_player(game, player_name, card_name):
     player = get_player_from_game(game, player_name)
     for i, card in enumerate(player.cards_to_pick_from):
         if card.name == card_name:
-            if player_can_pick_card(card, player):
-                add_card_resources_to_player(card, player)
-                card = player.cards_to_pick_from.pop(i)
-                if card.name in player.cards:
-                    raise Exception("You can not have duplicate cards")
-                else:
-                    player.cards[card.name] = card
-                return True
+            add_card_resources_to_player(card, player)
+            card = player.cards_to_pick_from.pop(i)
+            player.cards[card.name] = card
+            return True
     return False
 
 def get_player_from_game(game, name):
     print("In get_player_from_game")
     for player in game.players:
-        print(f"player.name: {player.name}")
+        print(f"player.name: {player.name} and name: {name}")
         if player.name == name:
             return player
 
-async def get_game_from_redis(game_id, lock):
-    if lock == None:
-        raise Exception("lock is None in get_game_from_redis")
-    print("GET_GAME_FROM_REDIS has the LOCK")
+async def insert_player_choice_into_game(player_name, game_id, choice):
     redis = await get_redis_connection()
+    lock = Lock(redis, f"lock:game:{game_id}", timeout=30)
     try:
-        string_game = await redis.hget(f"game:{game_id}", "game")
-        dict_game = eval(string_game)
-        deserialized_game = Game.from_dict(dict_game)
-        return deserialized_game
+        async with lock:
+            game = await get_game_from_redis(game_id, lock)
+            game.picking_choices[player_name] = choice
+            await insert_game_into_redis(game)
     except Exception as e:
-        print(f"could not get game from redis, error: {e}")
+        print(f"Could not get cards, error: {e}")
         traceback.print_exc()
 
 async def get_lobbies():
@@ -419,94 +471,3 @@ async def get_lobbies():
             "state": lobby_data.get("state", "open"),  # Assuming a "status" field exists
     })
     return lobbies
-
-async def setup_next_age(game_id):
-    redis = await get_redis_connection()
-    lock = Lock(redis, f"lock:game:{game_id}", timeout=30)
-    try:
-        async with lock:
-            game = await get_game_from_redis(game_id, lock)
-            resolve_millitary_conflicts(game.players, game.age)
-            game.age += 1
-            game.turn = 1
-            if game.age == 1:
-                pass #setup first turn here as well?
-            elif game.age == 2:
-                start_age_II(game)
-            elif game.age == 3:
-                start_age_III(game)
-            elif game.age == 4:
-                pass # game has ended?
-            else:
-                raise Exception("AGE CAN NOT BE SOMETHING ELSE OTHER THAN 1, 2, 3")
-            await insert_game_into_redis(game_id, game, lock)
-            return game
-            
-    except Exception as e:
-        print(f"could not set up new age, error: {e}")
-        traceback.print_exc()
-
-async def setup_next_turn(game_id):
-    print("setting up next turn!")
-    redis = await get_redis_connection()
-    lock = Lock(redis, f"lock:game:{game_id}", timeout=30)
-    try:
-        async with lock:
-            game = await get_game_from_redis(game_id, lock)
-            game.turn += 1
-            if game.age % 2 != 0: # clockwise
-                previous_players_cards = []
-                temp_cards = []
-                for i in range(len(game.players)-1, -1, -1):
-                    temp_cards = game.players[i].cards
-                    game.players[i].cards = previous_players_cards
-                    previous_players_cards = temp_cards
-                game.players[len(game.players)-1].cards = previous_players_cards
-            else: # anti-clockwise
-                previous_players_cards = []
-                temp_cards = []
-                for i in range(len(game.players)):
-                    temp_cards = game.players[i].cards
-                    game.players[i].cards = previous_players_cards
-                    previous_players_cards = temp_cards
-                game.players[0].cards = previous_players_cards
-            await insert_game_into_redis(game_id, game, lock)
-            print("setup_next_turn")
-            return game
-    except Exception as e:
-        print(f"could not set up new age, error: {e}")
-        traceback.print_exc()
-
-async def setup_player_resources(game):
-    players = game.players
-    for player in players:
-        if player.wonder.name == "Rhodos_day.png": 
-            player.resources["ore"] += 1
-        elif player.wonder.name == "Rhodos_night.png":
-            player.resources["ore"] += 1
-        elif player.wonder.name == "Alexandria_day.png":
-            player.resources["glass"] += 1
-        elif player.wonder.name == "Alexandria_night.png":
-            player.resources["glass"] += 1
-        elif player.wonder.name == "Ephesos_day.png":
-            player.resources["papyrus"] += 1
-        elif player.wonder.name == "Ephesos_night.png":
-            player.resources["papyrus"] += 1
-        elif player.wonder.name == "Babylon_day.png":
-            player.resources["wood"] += 1
-        elif player.wonder.name == "Babylon_night.png":
-            player.resources["wood"] += 1
-        elif player.wonder.name == "Olympia_day.png":
-            player.resources["clay"] += 1
-        elif player.wonder.name == "Olympia_night.png":
-            player.resources["clay"] += 1
-        elif player.wonder.name == "Halikarnassos_day.png":
-            player.resources["cloth"] += 1
-        elif player.wonder.name == "Halikarnassos_night.png":
-            player.resources["cloth"] += 1
-        elif player.wonder.name == "Gizah_day.png":
-            player.resources["stone"] += 1
-        elif player.wonder.name == "Gizah_night.png":
-            player.resources["stone"] += 1
-        else:
-            raise Exception("Error during resource setup")

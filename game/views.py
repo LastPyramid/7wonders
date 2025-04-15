@@ -12,7 +12,6 @@ from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
-import json
 
 class LogoutAPIView(APIView):
     authentication_classes = [TokenAuthentication]

@@ -1,11 +1,12 @@
 from django.db import models
 class Game:
-    def __init__(self, age_I_cards, age_II_cards, age_III_cards, players, turn=1, age=1):
+    def __init__(self, age_I_cards, age_II_cards, age_III_cards, choices, players, turn=1, age=1):
         self.turn = turn
         self.age = age
         self.age_I_cards = age_I_cards
         self.age_II_cards = age_II_cards
         self.age_III_cards = age_III_cards
+        self.picking_choices = choices
         self.players = players
     
     def to_dict(self):
@@ -13,6 +14,7 @@ class Game:
             "age_I_cards": [card.to_dict() for card in self.age_I_cards],
             "age_II_cards": [card.to_dict() for card in self.age_II_cards],
             "age_III_cards": [card.to_dict() for card in self.age_III_cards],
+            "picking_choices": self.picking_choices,
             "players": [player.to_dict() for player in self.players],
             "turn": self.turn,
             "age": self.age,
@@ -31,6 +33,7 @@ class Game:
             age_I_cards=[Card.from_dict(card) for card in data["age_I_cards"]],
             age_II_cards=[Card.from_dict(card) for card in data["age_II_cards"]],
             age_III_cards=[Card.from_dict(card) for card in data["age_III_cards"]],
+            choices=data.get("picking_choices"),
             players=players,
             turn=data.get("turn", 1),
             age=data.get("age", 1),
@@ -73,11 +76,14 @@ class Resources:
         )
 
 class Player:
-    def __init__(self, wonder, name, left_player=None, right_player=None):
+    def __init__(self, wonder, name, player_id, left_player=None, right_player=None):
         self.wonder = wonder
         self.name = name
+        self.player_id = player_id
         self.resources = {"compass": 0, "gear": 0, "tablet": 0, "ore": 0, "stone": 0, "wood": 0, "clay": 0,
                           "papyrus": 0, "cloth": 0, "glass": 0, "coins": 3}
+        self.temporary_resources = {"compass": 0, "gear": 0, "tablet": 0, "ore": 0, "stone": 0, "wood": 0, "clay": 0,
+                          "papyrus": 0, "cloth": 0, "glass": 0}
         self.cards = {}
         self.cards_to_pick_from = []
         self.free_construction = []
@@ -106,7 +112,9 @@ class Player:
         return {
             "wonder": wonder,
             "name": self.name,
+            "player_id": self.player_id,
             "resources": self.resources,
+            "temporary_resources": self.temporary_resources,
             "cards": [self.to_dict_resolve_card_type(card) for card in self.cards.values()],
             "cards_to_pick_from": [self.to_dict_resolve_card_type(card) for card in self.cards_to_pick_from],
             "free_construction": [construction.to_dict() for construction in self.free_construction],
@@ -132,9 +140,10 @@ class Player:
         else:
             wonder = Wonder.from_dict(wonder_data)
 
-        player = cls(wonder=wonder, name=data["name"])
+        player = cls(wonder=wonder, name=data["name"], player_id=data["player_id"])
 
         player.resources = data.get("resources", {})
+        player.temporary_resources = data.get("temporary_resources", {})
         player.cards = {card_data["name"]: player.from_dict_resolve_card_type(card_data) for card_data in data.get("cards")}
         player.cards_to_pick_from = [player.from_dict_resolve_card_type(card) for card in data.get("cards_to_pick_from")]
         player.free_construction = [Card.from_dict(construction) for construction in data.get("free_construction")]
@@ -356,7 +365,6 @@ class ScientificStructure(Card):
 class CommercialStructure(Card):
     def __init__(self, age, color, number_of_players, name, cost=None, symbol=None, resource_choices=None, west_trading=None, east_trading=None, marketplace=None, gold=0, gain=None):
         super().__init__(age, color, number_of_players, name, cost, symbol, resource_choices, gain)
-        print(f"In models.py this is symbol: {symbol}")
         self.gold = gold
         self.west_trading = west_trading
         self.east_trading = east_trading

@@ -18,10 +18,12 @@ def setup_game(list_of_players):
 	random.shuffle(age_III_cards)
 	
 	players = []	
+	picking_choices = {}
 	
 	#Create players
-	for name in list_of_players:
-		player = Player(wonders.pop(), name)
+	for id, name in enumerate(list_of_players):
+		player = Player(wonders.pop(), name, id)
+		picking_choices[name] = None
 		players.append(player)
 
 	left_player = players[-1]
@@ -39,7 +41,7 @@ def setup_game(list_of_players):
 		for card in range(7):
 			player.cards_to_pick_from.append(age_I_cards.pop())	
 
-	game = Game(age_I_cards, age_II_cards, age_III_cards, players)
+	game = Game(age_I_cards, age_II_cards, age_III_cards, players, picking_choices)
 	return game
 
 def start_age_II(game):
