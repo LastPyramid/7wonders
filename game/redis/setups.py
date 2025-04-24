@@ -40,24 +40,21 @@ async def setup_next_turn(game_id):
             game = await get_game_from_redis(game_id, lock)
             reset_temporary_resources(game)
             game.turn += 1
-            if game.age % 2 != 0: # clockwise
-                previous_players_cards = []
+            if game.age == 2: # anti clockwise
+                previous_players_cards = game.players[0].cards_to_pick_from
                 temp_cards = []
                 for i in range(len(game.players)-1, -1, -1):
-                    temp_cards = game.players[i].cards
-                    game.players[i].cards = previous_players_cards
+                    temp_cards = game.players[i].cards_to_pick_from
+                    game.players[i].cards_to_pick_from = previous_players_cards
                     previous_players_cards = temp_cards
-                game.players[len(game.players)-1].cards = previous_players_cards
-            else: # anti-clockwise
-                previous_players_cards = []
+            else: # clockwise
+                previous_players_cards = game.players[-1].cards_to_pick_from
                 temp_cards = []
                 for i in range(len(game.players)):
-                    temp_cards = game.players[i].cards
-                    game.players[i].cards = previous_players_cards
+                    temp_cards = game.players[i].cards_to_pick_from
+                    game.players[i].cards_to_pick_from = previous_players_cards
                     previous_players_cards = temp_cards
-                game.players[0].cards = previous_players_cards
             await insert_game_into_redis(game_id, game, lock)
-            print("setup_next_turn")
             return game
     except Exception as e:
         print(f"could not set up new age, error: {e}")

@@ -1,12 +1,12 @@
 from django.db import models
 class Game:
-    def __init__(self, age_I_cards, age_II_cards, age_III_cards, choices, players, turn=1, age=1):
+    def __init__(self, age_I_cards, age_II_cards, age_III_cards, picking_choices, players, turn=1, age=1):
         self.turn = turn
         self.age = age
         self.age_I_cards = age_I_cards
         self.age_II_cards = age_II_cards
         self.age_III_cards = age_III_cards
-        self.picking_choices = choices
+        self.picking_choices = picking_choices
         self.players = players
     
     def to_dict(self):
@@ -33,7 +33,7 @@ class Game:
             age_I_cards=[Card.from_dict(card) for card in data["age_I_cards"]],
             age_II_cards=[Card.from_dict(card) for card in data["age_II_cards"]],
             age_III_cards=[Card.from_dict(card) for card in data["age_III_cards"]],
-            choices=data.get("picking_choices"),
+            picking_choices=data.get("picking_choices"),
             players=players,
             turn=data.get("turn", 1),
             age=data.get("age", 1),

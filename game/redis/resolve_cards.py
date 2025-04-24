@@ -13,6 +13,9 @@ def resolve_raw_material(card, player):
         player.resources["clay"] += card.clay
     if card.clay > 0:
         player.resources["ore"] += card.ore
+    if card.resource_choices:
+        for resource_choice in card.resource_choices["choices"]:
+            player.mixed_resources.append(resource_choice)
 
 def resolve_manufactured_good(card, player):
     if card.cloth > 0:
@@ -45,7 +48,7 @@ def resolve_commercial_structure(card, player):
         player.resources["coins"] += card.gold
     if card.resource_choices:
         for resource_choice in card.resource_choices["choices"]:
-            player.mixed_resouces.append(resource_choice)
+            player.mixed_resources.append(resource_choice)
     if card.gain:
         activity = card.gain["activity"]
         card_colors = ["Red", "Green", "Yellow", "Purple", "Blue", "Brown", "Gray"]

@@ -22,7 +22,7 @@ def generate_age_I_raw_material_cards(nr_of_players): # should we add cost as 0 
     ore_vein1 = RawMaterial(1, "Brown", "3+", "stone_pit1", ore = 1)
     ore_vein2 = RawMaterial(1, "Brown", "4+", "stone_pit2", ore = 1)
 
-    timber_yard1 = RawMaterial(1, "Brown", "3+", "timber_yard1", cost={"coins": 1}, resource_choices={"choices": [{"wood": 1, "ore": 1, "clay": 1, "stone": 1}]})
+    timber_yard1 = RawMaterial(1, "Brown", "3+", "timber_yard1", cost={"coins": 1}, resource_choices={"choices": [{"wood": 1, "stone": 1}]})
 
     forest_cave1 = RawMaterial(1, "Brown", "5+", "forest_cave1", cost={"coins":1}, resource_choices={"choices": [{"wood": 1, "ore": 1}]})
 

@@ -1,4 +1,5 @@
-from .redis.async_redis_utils import create_game_in_redis, get_lobbies
+from .redis.async_redis_utils import create_game_in_redis
+from .redis.get import get_lobbies
 from channels.layers import get_channel_layer
 from django.http import JsonResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
