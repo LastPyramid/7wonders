@@ -8,7 +8,8 @@ from ..redis.async_redis_utils import (
     pick_card, sell_card, build_wonder_stage, insert_player_choice_into_game, player_can_pick_card)
 from ..redis.get import (
     get_player_cards, get_player_resources, get_players,
-    get_player_state, get_player_ids,get_player_decisions, get_player_channel_names)
+    get_player_state, get_player_ids,get_player_decisions, get_player_channel_names,
+    get_player_tradeable_resources_based_on_player_id)
 from ..redis.check import (
     check_if_everyone_has_picked_a_wonder, check_if_everyone_have_made_a_picking_decision,
     check_if_player_can_build_wonder_stage)
@@ -157,6 +158,15 @@ class GameConsumer(AsyncWebsocketConsumer):
             resources = await get_player_resources(self.player_name, self.game_id)
             print(f"sending resources: {resources}")
             await self.send(text_data=json.dumps({"resources": resources}))
+            
+        if data.get("type") == "get_neighbour_resources":
+            print("getting neighbour resources!")
+            player_id = data.get("player_id")
+            side = data.get("side")
+            resources = await get_player_tradeable_resources_based_on_player_id(player_id, self.game_id)
+            clean_resoures = self.clean_up_tradable_resources(resources)
+            print(f"sending resources: {clean_resoures}")
+            await self.send(text_data=json.dumps({"neighbour_resources": clean_resoures, "side":side}))
 
         if data.get("type") == "build_wonder":
             print("building wonder!")
@@ -172,6 +182,13 @@ class GameConsumer(AsyncWebsocketConsumer):
 
         if data.get("type") == "sell_card":
             card_name = data.get("name")
+            choice = {"sell_card":card_name}
+            await insert_player_choice_into_game(self.player_name, self.game_id, choice)
+            await self.send(text_data=json.dumps({"sell_card": {"status":"success"}}))
+            await self.check_if_everyone_has_picked()
+
+        if data.get("type") == "trade":
+            player_id = data.get("target")
             choice = {"sell_card":card_name}
             await insert_player_choice_into_game(self.player_name, self.game_id, choice)
             await self.send(text_data=json.dumps({"sell_card": {"status":"success"}}))
@@ -225,6 +242,20 @@ class GameConsumer(AsyncWebsocketConsumer):
                 await self.setup_new_turn(self.game_id)
         else:
             print("Waiting for everyone to pick a card")
+
+    def clean_up_tradable_resources(self, resources): # Here we need to clear away yellow cards and stage provided resources
+        clean_resources = {}
+        resoures_we_want = ['ore', 'stone', 'wood', 'clay', 'papyrus', 'cloth', 'glass']
+
+        clean_resources["mixed_resources"] = resources["mixed_resources"]
+        # for item in resources.mixed_resources:
+        #     if resources.mixed_resources[item] > 0:
+        #         clean_resources["mixed_resources"].append(resources.mixed_resources[item])
+
+        for item, value in resources.items():
+            if item in resoures_we_want and value > 0:
+                clean_resources[item] = value
+        return clean_resources
 
     async def resolve_decisions(self):
         print("In resolve_decisions")

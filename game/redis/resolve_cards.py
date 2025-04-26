@@ -1,8 +1,8 @@
 def resolve_millitary_conflicts(players, age):
     for i in range(1, len(players)-1, 1):
-        calculate_millitary_conflict_points(players[i-1], players[i], players[i+1])
-    calculate_millitary_conflict_points(players[-1], players[0], players[1])
-    calculate_millitary_conflict_points(players[-2], players[-1], players[0])
+        calculate_millitary_conflict_points(players[i-1], players[i], players[i+1], age)
+    calculate_millitary_conflict_points(players[-1], players[0], players[1], age)
+    calculate_millitary_conflict_points(players[-2], players[-1], players[0], age)
 
 def resolve_raw_material(card, player):
     if card.wood > 0:
@@ -15,7 +15,7 @@ def resolve_raw_material(card, player):
         player.resources["ore"] += card.ore
     if card.resource_choices:
         for resource_choice in card.resource_choices["choices"]:
-            player.mixed_resources.append(resource_choice)
+            player.mixed_resources.append(resource_choice)  # this replaces? what if we want to add?
 
 def resolve_manufactured_good(card, player):
     if card.cloth > 0:

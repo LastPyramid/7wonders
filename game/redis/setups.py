@@ -6,11 +6,13 @@ from ..game.game_logic import start_age_II, start_age_III
 import traceback
 
 async def setup_next_age(game_id):
+    print("in setup_next_age")
     redis = await get_redis_connection()
     lock = Lock(redis, f"lock:game:{game_id}", timeout=30)
     try:
         async with lock:
             game = await get_game_from_redis(game_id, lock)
+            print(f"game: {game}")
             resolve_millitary_conflicts(game.players, game.age)
             game.age += 1
             game.turn = 1
@@ -25,6 +27,7 @@ async def setup_next_age(game_id):
             else:
                 raise Exception("AGE CAN NOT BE SOMETHING ELSE OTHER THAN 1, 2, 3")
             await insert_game_into_redis(game_id, game, lock)
+            print(f"game: {game}")
             return game
             
     except Exception as e:

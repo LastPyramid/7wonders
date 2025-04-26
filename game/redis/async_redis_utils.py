@@ -1,5 +1,6 @@
 from itertools import permutations
 from aioredis.lock import Lock
+import traceback
 from time import time
 from channels.layers import get_channel_layer
 from itertools import permutations
@@ -7,23 +8,19 @@ from .resolve_cards import add_card_resources_to_player
 from .common import get_redis_connection, get_game_from_redis, insert_game_into_redis
 from .get import get_player_from_game, get_card_from_cards_to_pick_from
 
-import traceback
-
 async def create_game_in_redis():
     redis = await get_redis_connection()
 
     # Generate unique game ID (atomic increment)
     game_id = await redis.incr("game_id_counter")
 
-    # Initialize game state
     game_data = {
         "game_id": str(game_id),
         "players": "[]",
-        "state": "open",  # Can be 'open', 'full', 'picking', age1, age2,age3 ?
+        "state": "open", # is this used for something?
         "group_name": f"lobby_{game_id}",
     }
 
-    # Save game data to Redis
     await redis.hset(f"game:{game_id}", mapping=game_data)
     return game_id
 
@@ -79,7 +76,7 @@ def insert_temporary_resource(game, player_name, resource, amount):
 
 async def add_player_to_game(player_name, game_id):
     redis = await get_redis_connection()
-    lock = Lock(redis, f"lock:game:{game_id}", timeout=10)  # why is the lock lock:game should it not be game: only?
+    lock = Lock(redis, f"lock:game:{game_id}", timeout=10)
     try:
         async with lock:
             game_data = await redis.hgetall(f"game:{game_id}")
@@ -203,6 +200,7 @@ async def player_can_pick_card(player_name, game_id, card_name):
                     if card.cost["symbol"] in player.symbols:
                         return True
             required_resources = card.cost.copy()
+            required_resources.pop("symbol", None)
             resources_to_remove = []
     
             for resource, amount in required_resources.items():
@@ -235,7 +233,6 @@ async def player_can_pick_card(player_name, game_id, card_name):
 
                 if all(v <= 0 for v in remaining.values()):
                     return True
-
             return False
     except Exception as e:
         print(f"Could not pick a card, error: {e}")

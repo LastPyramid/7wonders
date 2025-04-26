@@ -3,7 +3,6 @@ from aioredis.lock import Lock
 from .common import get_redis_connection, get_game_from_redis, insert_game_into_redis
 import copy
 
-
 async def get_wonder_based_on_player_id(player_id, game_id):
     redis = await get_redis_connection()
     lock = Lock(redis, f"lock:game:{game_id}", timeout=10)
@@ -51,8 +50,40 @@ async def get_player_resources_based_on_player_id(player_id, game_id):
         print(f"could not get player resources, error: {e}")
         traceback.print_exc()
 
+async def get_player_tradeable_resources_based_on_player_id(player_id, game_id):
+    print("in get_player_tradeable_resources!")
+    redis = await get_redis_connection()
+    lock = Lock(redis, f"lock:game:{game_id}", timeout=10)
+    try:
+        async with lock:
+            game = await get_game_from_redis(game_id, lock)
+            player = get_player_based_on_player_id(game, player_id)
+            resources = get_all_player_resources(player)
+            print(f"resources: {resources}")
+            cards = player.cards
+            print(f"cards: {cards}")
+            if any(card.startswith("caravansery") for card in cards):
+                resources["mixed_resources"].remove({"wood": 1, "ore": 1, "clay": 1, "stone": 1})
+            if any(card.startswith("forum") for card in cards):
+                resources["mixed_resources"].remove({"glass": 1, "papyrus": 1, "cloth": 1})
+            wonder = player.wonder
+            if wonder.name == "Alexandria_day.png":
+                if wonder.stage2.purchased:
+                    resources["mixed_resources"].remove({"wood": 1, "ore": 1, "clay": 1, "stone": 1})
+            if wonder.name == "Alexandria_night.png":
+                if wonder.stage1.purchased:
+                    resources["mixed_resources"].remove({"wood": 1, "ore": 1, "clay": 1, "stone": 1})
+                if wonder.stage2.purchased:
+                    resources["mixed_resources"].remove({"glass": 1, "papyrus": 1, "cloth": 1})
+            print(f"resources before returning: {resources}")
+            return resources
+
+    except Exception as e:
+        print(f"could not get player resources, error: {e}")
+        traceback.print_exc()
+
 async def get_player_state(player_id, game_id):
-    resources = await get_player_based_on_player_id(player_id, game_id)
+    resources = await get_player_resources_based_on_player_id(player_id, game_id)
     wonder = await get_wonder_based_on_player_id(player_id, game_id)
     cards = await get_player_cards_based_on_player_id(player_id, game_id)
     return resources, wonder, cards

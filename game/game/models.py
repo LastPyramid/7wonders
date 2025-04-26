@@ -168,6 +168,9 @@ class Player:
         del self._left_player_name
         del self._right_player_name
 
+    def to_dict_resolve_card_type(self, card):
+        return card.to_dict()
+
     def from_dict_resolve_card_type(self, card):
         if card["color"] == "Brown":
             return RawMaterial.from_dict(card)
@@ -183,22 +186,6 @@ class Player:
             return MilitaryStructure.from_dict(card)
         elif card["color"] == "Purple":
             return Guild.from_dict(card)
-
-    def to_dict_resolve_card_type(self, card):
-        if card.color == "Brown":
-            return RawMaterial.to_dict(card)
-        elif card.color == "Gray":
-            return ManufacturedGood.to_dict(card)
-        elif card.color == "Blue":
-            return CivilianStructure.to_dict(card)
-        elif card.color == "Green":
-            return ScientificStructure.to_dict(card)
-        elif card.color == "Yellow":
-            return CommercialStructure.to_dict(card)
-        elif card.color == "Red":
-            return MilitaryStructure.to_dict(card)
-        elif card.color == "Purple":
-            return Guild.to_dict(card)
 
 class Card:
     def __init__(self, age, color, number_of_players, name, cost=None, symbol=None, resource_choices=None, gain=None):
@@ -461,8 +448,6 @@ class Guild(Card):
             # gear=data.get("gear"),
             # tablet=data.get("tablet"),
         )
-
-
 
 class Wonder():
     def __init__(self, name, benefit, stage1, stage2, stage3=None, stage4=None):
