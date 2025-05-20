@@ -204,13 +204,13 @@ async def get_lobbies():
         lobbies.append({
             "game_id": key.split(":")[1],  # Extract game_id from key
             "players": players,
-            "state": lobby_data.get("state", "open"),  # Assuming a "status" field exists
+            "state": lobby_data.get("state", "open"),
     })
     return lobbies
 
 async def get_players(game_id):
     redis = await get_redis_connection()
-    lock = Lock(redis, f"lock:game:{game_id}", timeout=10)  # 10-second lock
+    lock = Lock(redis, f"lock:game:{game_id}", timeout=10)
     try:
         async with lock:
             game_data = await redis.hgetall(f"game:{game_id}")

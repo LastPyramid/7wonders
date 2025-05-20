@@ -1,8 +1,6 @@
 def resolve_millitary_conflicts(players, age):
-    for i in range(1, len(players)-1, 1):
-        calculate_millitary_conflict_points(players[i-1], players[i], players[i+1], age)
-    calculate_millitary_conflict_points(players[-1], players[0], players[1], age)
-    calculate_millitary_conflict_points(players[-2], players[-1], players[0], age)
+    for player in players:
+        calculate_millitary_conflict_points(player.left_player, player, player.right_player, age)
 
 def resolve_raw_material(card, player):
     if card.wood > 0:
@@ -25,9 +23,11 @@ def resolve_manufactured_good(card, player):
     if card.glass > 0:
         player.resources["glass"] += card.glass
 
-def resolve_civilian_structure(card, player):
+def resolve_victory_points_from_civilian_structure(card):
+    final_score = 0
     if card.victory_points > 0:
-        player.victory_points += card.victory_points
+        final_score += card.victory_points
+    return final_score
 
 def resolve_scientific_structure(card, player):
     if card.compass > 0:
@@ -36,6 +36,70 @@ def resolve_scientific_structure(card, player):
         player.resources["gear"] += card.gear
     if card.tablet > 0:
         player.resources["tablet"] += card.tablet
+
+def resolve_victory_points_from_commercial_structure(card, player):
+    final_score = 0
+    if card.gain:
+        if "victory_point" in card.gain["gain"]:
+            points_per_condition = card.gain["gain"]["victory_point"]
+            activity = card.gain["condition"]["activity"]
+            for location in card.gain["condition"]["location"]:
+                if location == "self":
+                    final_score += resolve_commercial_structure_condition(player, activity, points_per_condition)
+                elif location == "right":
+                    final_score += resolve_commercial_structure_condition(player.right_player, activity, points_per_condition)
+                elif location == "left":
+                    final_score += resolve_commercial_structure_condition(player.left_player, activity, points_per_condition)
+    return final_score
+
+def resolve_commercial_structure_condition(player, activity, points_per_condition): 
+    # Returns points per card of a certain type or stage
+    if activity == "Brown":
+        brown_cards = [card for card in player.cars if card.color == "Brown"] 
+        return points_per_condition*len(brown_cards)
+    elif activity == "Yellow":
+        yellow_cards = [card for card in player.cars if card.color == "Yellow"] 
+        return points_per_condition*len(yellow_cards)
+    elif activity == "Gray":
+        gray_cards = [card for card in player.cars if card.color == "Gray"] 
+        return points_per_condition*len(gray_cards)
+    elif activity == "Red":
+        red_cards = [card for card in player.cars if card.color == "Red"] 
+        return points_per_condition*len(red_cards)
+    elif activity == "Stage of Wonders":
+        stage_of_wonder = 0
+        wonder = player.wonder
+        if wonder.stage1.purchased:
+            stage_of_wonder += 1
+            if wonder.stage2.purchased:
+                stage_of_wonder += 1
+                if wonder.stage3:
+                    if wonder.stage3.purchased:
+                        stage_of_wonder += 1
+                        if wonder.stage4:
+                            if wonder.stage4.purchased:
+                                stage_of_wonder += 1
+        return points_per_condition*stage_of_wonder
+
+def resolve_victory_points_from_guilds(player, purple_cards):
+    pass
+
+def resolve_victory_points_from_sientific_structure_with_scientists_guild():
+    pass
+
+def resolve_victory_points_from_sientific_structure(player, green_cards, ):
+    final_score = 0
+    compasses = [card for card in green_cards if card.compass]
+    final_score += pow(len(compasses), 2)
+    gears = [card for card in green_cards if card.gear]
+    final_score += pow(len(gears), 2)
+    tablets = [card for card in green_cards if card.tablet]
+    final_score += pow(len(tablets), 2)
+
+    # Sets of one of a kind
+    for i,j,k in zip(compasses, gears, tablets):
+        final_score += 7
+    return final_score
 
 def resolve_commercial_structure(card, player):
     if card.east_trading:
@@ -99,7 +163,7 @@ def resolve_card_victory_points(card, player, color): # used at the end of game
                     victory_points += len(player.right_player.cards[color])*multiplier
                 elif location == "left":
                     victory_points += len(player.left_player.cards[color])*multiplier
-    player.victory_points += victory_points
+    return victory_points
 
 def resolve_military_structure(card, player):
     if card.millitary_strength > 0:
@@ -125,8 +189,6 @@ def resolve_card_resources(card, player):
         resolve_raw_material(card, player)
     elif card.color == "Gray":
         resolve_manufactured_good(card, player)
-    elif card.color == "Blue":
-        resolve_civilian_structure(card, player)
     elif card.color == "Green":
         resolve_scientific_structure(card, player)
     elif card.color == "Yellow":
@@ -144,7 +206,7 @@ def calculate_millitary_conflict_points(left_player, player, right_player, age):
         player.victory_token += points_per_win
     elif player.millitary_strength < left_player.millitary_strength:
         player.defeat_token += 1
-    elif player.millitary_strength > right_player.millitary_strength:
+    if player.millitary_strength > right_player.millitary_strength:
         player.victory_token += points_per_win
     elif player.millitary_strength < right_player.millitary_strength:
         player.defeat_token += 1

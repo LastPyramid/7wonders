@@ -56,15 +56,14 @@ class GameConsumer(AsyncWebsocketConsumer):
         game = await setup_next_age(game_id)
         await self.send_cards(channel_names, game)
 
-    async def get_other_players_resources(self, game_id):
-        channel_names = await get_player_channel_names(self.game_id)
-        game = await setup_next_age(game_id)
-        await self.send_cards(channel_names, game)
+    # async def get_other_players_resources(self, game_id): not used?
+    #     channel_names = await get_player_channel_names(self.game_id)
+    #     game = await setup_next_age(game_id)
+    #     await self.send_cards(channel_names, game)
 
     async def setup_new_turn(self, game_id):
         channel_names = await get_player_channel_names(self.game_id)
         game = await setup_next_turn(game_id)
-        print("in setup_new_turn")
         await self.send_cards(channel_names, game)
 
     async def send_cards(self, channel_names, game):
@@ -92,14 +91,13 @@ class GameConsumer(AsyncWebsocketConsumer):
             self.game_id = self.scope['url_route']['kwargs']['game_id'] # do we really need self.game_id? dont think so because its set in connet
             self.player_name = self.scope['url_route']['kwargs']['player_name']
             await update_last_seen(self.game_id, self.player_name)
-            print(f"Received heartbeat from {self.channel_name}")
+            #print(f"Received heartbeat from {self.channel_name}")
 
         if data.get("type") == "start":
             print("starting game...")
             game_id = self.scope['url_route']['kwargs']['game_id']
             result = await lock_game(game_id)
             if result == "failed":
-                print("failed")
                 await self.channel_layer.send(
                     self.channel_name,
                     {
@@ -134,7 +132,6 @@ class GameConsumer(AsyncWebsocketConsumer):
             people_have_picked = await check_if_everyone_has_picked_a_wonder(self.game_id)
             if people_have_picked:
                 game = people_have_picked
-                print(game)
                 channel_names = await get_player_channel_names(self.game_id)
                 await self.send_cards(channel_names, game)
                 print("everyone has picked now")
@@ -149,23 +146,20 @@ class GameConsumer(AsyncWebsocketConsumer):
             await self.send_player_state(player_id)
 
         if data.get("type") == "get_player_ids":
-            print("in consumers.py get_player_ids")
             await self.send_player_ids()
 
 
         if data.get("type") == "get_resources":
-            print("getting resources!")
             resources = await get_player_resources(self.player_name, self.game_id)
-            print(f"sending resources: {resources}")
+            print(f"getting and sending resources: {resources}")
             await self.send(text_data=json.dumps({"resources": resources}))
             
         if data.get("type") == "get_neighbour_resources":
-            print("getting neighbour resources!")
             player_id = data.get("player_id")
             side = data.get("side")
             resources = await get_player_tradeable_resources_based_on_player_id(player_id, self.game_id)
             clean_resoures = self.clean_up_tradable_resources(resources)
-            print(f"sending resources: {clean_resoures}")
+            print(f"getting and sending neighbour resources: {clean_resoures}")
             await self.send(text_data=json.dumps({"neighbour_resources": clean_resoures, "side":side}))
 
         if data.get("type") == "build_wonder":
@@ -201,6 +195,7 @@ class GameConsumer(AsyncWebsocketConsumer):
                 await insert_player_choice_into_game(self.player_name, self.game_id, choice)
                 await self.send(text_data=json.dumps({"pick_card": {"status":"success"}}))
             else:
+                print("Player could not pick the card!")
                 await self.send(text_data=json.dumps({"pick_card": {"status":"fail"}, "message": "Could not pick card"}))
             await self.check_if_everyone_has_picked()
 
@@ -261,7 +256,6 @@ class GameConsumer(AsyncWebsocketConsumer):
         print("In resolve_decisions")
         player_decisions = await get_player_decisions(self.game_id)
         for player, choice in player_decisions.items():
-            print(f"August Remove this: player: {player}")
             for event, item in choice.items():
                 if event == "pick_card":
                     player_could_pick = await pick_card(self.game_id, item, player)
@@ -295,7 +289,6 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def send_player_ids(self):
         player_ids, player_id, left_player_id, right_player_id = await get_player_ids(self.player_name, self.game_id)
-        print("Sending Player Ids!")
         await self.send(text_data=json.dumps({"player_ids": player_ids,
                                               "player_id": player_id,
                                               "left_player_id":left_player_id,
@@ -304,6 +297,14 @@ class GameConsumer(AsyncWebsocketConsumer):
     async def age_I_cards(self, event):
         cards = event['message']
         await self.send(text_data=json.dumps({"age_I_cards":cards}))
+
+    async def age_II_cards(self, event):
+        cards = event['message']
+        await self.send(text_data=json.dumps({"age_II_cards":cards}))
+
+    async def age_III_cards(self, event):
+        cards = event['message']
+        await self.send(text_data=json.dumps({"age_III_cards":cards}))
 
     async def chat_message(self, event):
         print(event)

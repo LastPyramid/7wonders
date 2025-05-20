@@ -1,8 +1,11 @@
 from channels.layers import get_channel_layer
 from .common import get_redis_connection, get_game_from_redis, insert_game_into_redis
 from aioredis.lock import Lock
-from .resolve_cards import resolve_millitary_conflicts
+from .resolve_cards import (resolve_millitary_conflicts, resolve_victory_points_from_commercial_structure,
+    resolve_victory_points_from_sientific_structure, resolve_victory_points_from_civilian_structure)
 from ..game.game_logic import start_age_II, start_age_III
+from ..game.models import ScientificStructure
+
 import traceback
 
 async def setup_next_age(game_id):
@@ -12,7 +15,6 @@ async def setup_next_age(game_id):
     try:
         async with lock:
             game = await get_game_from_redis(game_id, lock)
-            print(f"game: {game}")
             resolve_millitary_conflicts(game.players, game.age)
             game.age += 1
             game.turn = 1
@@ -23,16 +25,94 @@ async def setup_next_age(game_id):
             elif game.age == 3:
                 start_age_III(game)
             elif game.age == 4:
-                pass # game has ended?
+                end_game(game)
             else:
-                raise Exception("AGE CAN NOT BE SOMETHING ELSE OTHER THAN 1, 2, 3")
+                raise Exception("AGE CAN NOT BE SOMETHING ELSE OTHER THAN 1, 2, 3, 4")
             await insert_game_into_redis(game_id, game, lock)
-            print(f"game: {game}")
             return game
             
     except Exception as e:
         print(f"could not set up new age, error: {e}")
         traceback.print_exc()
+
+def end_game(game):
+    for player in game.players:
+        player.victory_points = calculate_final_scores(player)
+
+def calculate_final_scores(player):
+    final_score = 0
+    # Points from victory board
+    wonder = player.wonder
+    if wonder.stage1.purchased:
+        if "victory_points" in wonder.stage1.benefit:
+            final_score += wonder.stage1.benefit["victory_points"]
+        if wonder.stage2.purchased:
+            if "victory_points" in wonder.stage2.benefit:
+                final_score += wonder.stage2.benefit["victory_points"]
+            if wonder.stage3 and wonder.stage3.purchased:
+                if "victory_points" in wonder.stage3.benefit:
+                    final_score += wonder.stage3.benefit["victory_points"]
+                if wonder.stage4 and wonder.stage4.purchased:
+                    if "victory_points" in wonder.stage4.benefit:
+                        final_score += wonder.stage4.benefit["victory_points"]
+    # Points from Coins
+    final_score += player.resources["coins"]/3
+
+    # Points from millitary conflicts
+    final_score += player.victory_token - player.defeat_token
+
+    # Points from Blue Cards
+    blue_cards = [card for card in player.cards if card.color ==  "Blue"]
+    for card in blue_cards:
+        final_score += resolve_victory_points_from_civilian_structure(card)
+
+    # Points from Yellow Cards
+    yellow_cards = [card for card in player.cards if card.color == "Yellow"]
+    for card in yellow_cards:
+        final_score += resolve_victory_points_from_commercial_structure(player, card) # Not Done remove when done
+
+    # Points from Green Cards
+    green_cards = [card for card in player.cards if card.color == "Green"]
+    purple_cards = [card for card in player.cards if card.color == "Purple"]
+    player_has_science_guild = False
+    for card in purple_cards:
+        if card.name == "scientists_guild1":
+            player_has_science_guild = True
+
+    if player_has_science_guild: # Trying different combinations
+        highest_points = 0
+        current_points = 0
+
+        compass = ScientificStructure(3, "Green", "3+", "temp_sientific_guild", cost={}, compass=1)
+        gear = ScientificStructure(3, "Green", "3+", "temp_sientific_guild", cost={}, gear=1)
+        tablet = ScientificStructure(3, "Green", "3+", "temp_sientific_guild", cost={}, tablet=1)
+        compass_gear_tablet = [compass, gear, tablet]
+        for card in compass_gear_tablet:
+            green_cards.append(card)
+            current_points = resolve_victory_points_from_sientific_structure(player, green_cards)
+            if current_points > highest_points:
+                higest_points = current_points
+            green_cards.pop()
+        final_score += higest_points
+    else:
+        final_score += resolve_victory_points_from_sientific_structure(green_cards)
+
+    # Purple Cards
+    purple_cards = [card for card in player.cards if card.color == "Purple"]
+    final_score += resolve_victory_points_from_guilds(purple_cards)
+    # location=["left", "right"], victory_points=1, activity=["Brown"])
+    # location=["left", "right"], victory_points=2, activity=["Gray"])
+    # location=["left", "right"], victory_points=1, activity=["Yellow"])
+    # location=["left", "right"], victory_points=1, activity=["Green"])
+    # location=["left", "right"], victory_points=1, activity=["Red"])
+    # location=["self"], victory_points=1, activity=["Brown", "Gray", "Purple"])
+    # scientists_guild = Guild(3, "Purple", "3+", "scientists_guild1", cost={"wood": 2, "ore": 2, "papyrus":1}, resource_choices={"choices": [{"compass": 1, "tablet": 1, "gear": 1}]})
+    # magistrates_guild = Guild(3, "Purple", "3+", "magistrates_guild1", cost={"wood": 3, "stone":1, "cloth": 1}, location=["left", "right"], victory_points=1, activity=["Blue"])
+    # builders_guild = Guild(3, "Purple", "3+", "builders_guild1", cost={"stone": 3, "clay": 2, "glass": 1}, location=["self", "left", "right"], victory_points=1, activity=["Wonders"])
+    # decorators_guild = Guild(3, "Purple", "3+", "decorators_guild1", cost={"ore": 2, "stone": 1, "cloth":1}, victory_points=7)
+
+
+    return final_score
 
 async def setup_next_turn(game_id):
     print("setting up next turn!")
@@ -42,6 +122,7 @@ async def setup_next_turn(game_id):
         async with lock:
             game = await get_game_from_redis(game_id, lock)
             reset_temporary_resources(game)
+            print(f"Going from turn {game.turn} -> {game.turn+1}")
             game.turn += 1
             if game.age == 2: # anti clockwise
                 previous_players_cards = game.players[0].cards_to_pick_from

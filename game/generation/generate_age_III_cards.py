@@ -157,10 +157,10 @@ def generate_age_III_military_structures(nr_of_players):
 
 def generate_age_III_guilds(nr_of_players):
     workers_guild = Guild(3, "Purple", "3+", "workers_guild1", cost={"ore": 2, "wood":1, "stone": 1, "clay": 1}, location=["left", "right"], victory_points=1, activity=["Brown"])
-    craftmens_guild = Guild(3, "Purple", "3+", "craftmens_guild1", cost={"stone": 2, "ore": 2}, location=["left", "right"], victory_points=2, activity=["Gray"])
+    craftmens_guild = Guild(3, "Purple", "3+", "craftsmens_guild1", cost={"stone": 2, "ore": 2}, location=["left", "right"], victory_points=2, activity=["Gray"])
     traders_guild = Guild(3, "Purple", "3+", "traders_guild1", cost={"cloth": 1, "papyrus": 1, "glass": 1}, location=["left", "right"], victory_points=1, activity=["Yellow"])
     philosophers_guild = Guild(3, "Purple", "3+", "philosophers_guild1", cost={"clay": 3, "papyrus": 1, "cloth":1}, location=["left", "right"], victory_points=1, activity=["Green"])
-    spies_guild = Guild(3, "Purple", "3+", "spies-guild1", cost={"clay": 2, "glass":1}, location=["left", "right"], victory_points=1, activity=["Red"])
+    spies_guild = Guild(3, "Purple", "3+", "spies_guild1", cost={"clay": 2, "glass":1}, location=["left", "right"], victory_points=1, activity=["Red"])
     shipowners_guild = Guild(3, "Purple", "3+", "shipowners_guild1", cost={"wood": 3, "glass":1, "papyrus": 1}, location=["self"], victory_points=1, activity=["Brown", "Gray", "Purple"])
     scientists_guild = Guild(3, "Purple", "3+", "scientists_guild1", cost={"wood": 2, "ore": 2, "papyrus":1}, resource_choices={"choices": [{"compass": 1, "tablet": 1, "gear": 1}]})
     magistrates_guild = Guild(3, "Purple", "3+", "magistrates_guild1", cost={"wood": 3, "stone":1, "cloth": 1}, location=["left", "right"], victory_points=1, activity=["Blue"])
