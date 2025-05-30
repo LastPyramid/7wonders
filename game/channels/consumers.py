@@ -5,14 +5,14 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from ..redis.async_redis_utils import (
     add_player_to_game, remove_player_from_game, update_last_seen,
     add_player_websocket_group, lock_game, insert_game_into_redis, pick_wonder, 
-    pick_card, sell_card, build_wonder_stage, insert_player_choice_into_game, player_can_pick_card)
+    pick_card, sell_card, build_wonder_stage, insert_player_choice_into_game, player_can_pick_card, trade)
 from ..redis.get import (
     get_player_cards, get_player_resources, get_players,
-    get_player_state, get_player_ids,get_player_decisions, get_player_channel_names,
-    get_player_tradeable_resources_based_on_player_id)
+    get_player_state, get_player_ids,get_and_reset_player_decisions, get_player_channel_names,
+    get_player_tradeable_resources_based_on_player_id, get_player_from_game)
 from ..redis.check import (
     check_if_everyone_has_picked_a_wonder, check_if_everyone_have_made_a_picking_decision,
-    check_if_player_can_build_wonder_stage)
+    check_if_player_can_build_wonder_stage, check_if_players_have_babylon_night_stage2_power)
 
 class GameConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -54,7 +54,8 @@ class GameConsumer(AsyncWebsocketConsumer):
     async def setup_new_age(self, game_id):
         channel_names = await get_player_channel_names(self.game_id)
         game = await setup_next_age(game_id)
-        await self.send_cards(channel_names, game)
+        if game:
+            await self.send_cards(channel_names, game)
 
     # async def get_other_players_resources(self, game_id): not used?
     #     channel_names = await get_player_channel_names(self.game_id)
@@ -83,6 +84,22 @@ class GameConsumer(AsyncWebsocketConsumer):
                     "message":cards
                 }
             )
+
+    async def send_cards_to_player_with_babylon_night_stage2(self, channel_names, game, player):
+        age = game.age * "I"
+        channel_name = channel_names[player.name]
+        cards = []
+        for card in player.cards_to_pick_from:
+            cards.append(card.to_dict())
+        await self.channel_layer.send(
+        channel_name,
+            {
+                "type":f"age_{age}_cards",
+                "turn":f"7",
+                "message":cards,
+                "babylon_night":"true"
+            }
+        )
 
     async def receive(self, text_data): # tar emot meddelanden från 1 websocket, frontend
         data = json.loads(text_data)
@@ -141,13 +158,15 @@ class GameConsumer(AsyncWebsocketConsumer):
         if data.get("type") == "get_cards":
             await self.send_player_cards()
 
+        if data.get("type") == "babylon_stage2": #Anything else needed here?
+            await self.setup_new_age(self.game_id)
+
         if data.get("type") == "get_player_state":
             player_id = data.get("player_id")
             await self.send_player_state(player_id)
 
         if data.get("type") == "get_player_ids":
             await self.send_player_ids()
-
 
         if data.get("type") == "get_resources":
             resources = await get_player_resources(self.player_name, self.game_id)
@@ -182,11 +201,18 @@ class GameConsumer(AsyncWebsocketConsumer):
             await self.check_if_everyone_has_picked()
 
         if data.get("type") == "trade":
-            player_id = data.get("target")
-            choice = {"sell_card":card_name}
-            await insert_player_choice_into_game(self.player_name, self.game_id, choice)
-            await self.send(text_data=json.dumps({"sell_card": {"status":"success"}}))
-            await self.check_if_everyone_has_picked()
+            # REMOVE
+            # this is how the object from the front-end look like: 
+            # {"type":"trade","target":0,"resource":{"wood":1,"papyrus":1,"cloth":1}}
+            target_player_id = data.get("target")
+            resources_player_wants = data.get("resource")
+            player_could_trade = trade(self.game_id, self.player_name, target_player_id, resources_player_wants)
+            if player_could_trade:
+                print(f"{self.player_name} could trade!")
+                await self.send(text_data=json.dumps({"trade": {"status":"success"}}))
+            else:
+                print(f"{self.player_name} could not trade!")
+                await self.send(text_data=json.dumps({"trade": {"status":"fail"}, "message": "Could not trade"}))
 
         if data.get("type") == "pick_card":
             card_name = data.get("name")
@@ -230,22 +256,24 @@ class GameConsumer(AsyncWebsocketConsumer):
             await self.resolve_decisions()
             await self.send_players_their_resources()
             if game.turn == 6:
-                print("last turn")
-                await self.setup_new_age(self.game_id)
+                player_has_babylon_night_power = check_if_players_have_babylon_night_stage2_power(game)
+                if player_has_babylon_night_power:
+                    player = player_has_babylon_night_power
+                    channel_names = await get_player_channel_names(self.game_id)
+                    await self.send_cards_to_player_with_babylon_night_stage2(channel_names, player, game)
+                else:
+                    print("last turn")
+                    await self.setup_new_age(self.game_id)
             else:
                 print("prepping next turn")
                 await self.setup_new_turn(self.game_id)
         else:
             print("Waiting for everyone to pick a card")
 
-    def clean_up_tradable_resources(self, resources): # Here we need to clear away yellow cards and stage provided resources
+    def clean_up_tradable_resources(self, resources):
         clean_resources = {}
         resoures_we_want = ['ore', 'stone', 'wood', 'clay', 'papyrus', 'cloth', 'glass']
-
         clean_resources["mixed_resources"] = resources["mixed_resources"]
-        # for item in resources.mixed_resources:
-        #     if resources.mixed_resources[item] > 0:
-        #         clean_resources["mixed_resources"].append(resources.mixed_resources[item])
 
         for item, value in resources.items():
             if item in resoures_we_want and value > 0:
@@ -254,7 +282,7 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def resolve_decisions(self):
         print("In resolve_decisions")
-        player_decisions = await get_player_decisions(self.game_id)
+        player_decisions = await get_and_reset_player_decisions(self.game_id)
         for player, choice in player_decisions.items():
             for event, item in choice.items():
                 if event == "pick_card":

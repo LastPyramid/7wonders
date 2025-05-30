@@ -2,7 +2,8 @@ from channels.layers import get_channel_layer
 from .common import get_redis_connection, get_game_from_redis, insert_game_into_redis
 from aioredis.lock import Lock
 from .resolve_cards import (resolve_millitary_conflicts, resolve_victory_points_from_commercial_structure,
-    resolve_victory_points_from_sientific_structure, resolve_victory_points_from_civilian_structure)
+    resolve_victory_points_from_sientific_structure, resolve_victory_points_from_civilian_structure,
+    resolve_victory_points_from_guilds)
 from ..game.game_logic import start_age_II, start_age_III
 from ..game.models import ScientificStructure
 
@@ -18,9 +19,7 @@ async def setup_next_age(game_id):
             resolve_millitary_conflicts(game.players, game.age)
             game.age += 1
             game.turn = 1
-            if game.age == 1:
-                pass #setup first turn here as well?
-            elif game.age == 2:
+            if game.age == 2:
                 start_age_II(game)
             elif game.age == 3:
                 start_age_III(game)
@@ -28,6 +27,9 @@ async def setup_next_age(game_id):
                 end_game(game)
             else:
                 raise Exception("AGE CAN NOT BE SOMETHING ELSE OTHER THAN 1, 2, 3, 4")
+            for player in game.players:
+                player.traded = False
+                player.temporary_resources = {}
             await insert_game_into_redis(game_id, game, lock)
             return game
             
@@ -38,6 +40,7 @@ async def setup_next_age(game_id):
 def end_game(game):
     for player in game.players:
         player.victory_points = calculate_final_scores(player)
+        print(f"final score for player: {player} is {player.victory_points}")
 
 def calculate_final_scores(player):
     final_score = 0
@@ -55,31 +58,43 @@ def calculate_final_scores(player):
                 if wonder.stage4 and wonder.stage4.purchased:
                     if "victory_points" in wonder.stage4.benefit:
                         final_score += wonder.stage4.benefit["victory_points"]
+    print(f"{player.name} things")
     # Points from Coins
-    final_score += player.resources["coins"]/3
+    final_score += int(player.resources["coins"]/3)
+    c = int(player.resources["coins"]/3)
+    print(f"{c} points from coins")
 
     # Points from millitary conflicts
     final_score += player.victory_token - player.defeat_token
+    print(f"{player.victory_token - player.defeat_token} from milltary conflicts")
 
     # Points from Blue Cards
-    blue_cards = [card for card in player.cards if card.color ==  "Blue"]
+    print(player.cards)
+    blue_cards = [card for card in player.cards.values() if card.color ==  "Blue"]
+    fs = 0
     for card in blue_cards:
-        final_score += resolve_victory_points_from_civilian_structure(card)
+        fs += resolve_victory_points_from_civilian_structure(card) #update later
+    print(f"{fs} from blue cards")
+    final_score += fs
 
     # Points from Yellow Cards
-    yellow_cards = [card for card in player.cards if card.color == "Yellow"]
+    yellow_cards = [card for card in player.cards.values() if card.color == "Yellow"]
+    fs = 0
     for card in yellow_cards:
-        final_score += resolve_victory_points_from_commercial_structure(player, card) # Not Done remove when done
+        fs += resolve_victory_points_from_commercial_structure(player, card) # Not Done remove when done
+    final_score += fs
+    print(f"{fs} points from yellow cards")
 
     # Points from Green Cards
-    green_cards = [card for card in player.cards if card.color == "Green"]
-    purple_cards = [card for card in player.cards if card.color == "Purple"]
+    green_cards = [card for card in player.cards.values() if card.color == "Green"]
+    purple_cards = [card for card in player.cards.values() if card.color == "Purple"]
     player_has_science_guild = False
+    fs = 0
     for card in purple_cards:
         if card.name == "scientists_guild1":
             player_has_science_guild = True
 
-    if player_has_science_guild: # Trying different combinations
+    if player_has_science_guild: # Testing all choices of [gear, tablet, compass]
         highest_points = 0
         current_points = 0
 
@@ -87,30 +102,23 @@ def calculate_final_scores(player):
         gear = ScientificStructure(3, "Green", "3+", "temp_sientific_guild", cost={}, gear=1)
         tablet = ScientificStructure(3, "Green", "3+", "temp_sientific_guild", cost={}, tablet=1)
         compass_gear_tablet = [compass, gear, tablet]
-        for card in compass_gear_tablet:
+        for card in compass_gear_tablet: 
             green_cards.append(card)
             current_points = resolve_victory_points_from_sientific_structure(player, green_cards)
             if current_points > highest_points:
                 higest_points = current_points
             green_cards.pop()
-        final_score += higest_points
+        fs += higest_points
     else:
-        final_score += resolve_victory_points_from_sientific_structure(green_cards)
+        fs += resolve_victory_points_from_sientific_structure(green_cards)
+    final_score += fs
 
     # Purple Cards
-    purple_cards = [card for card in player.cards if card.color == "Purple"]
-    final_score += resolve_victory_points_from_guilds(purple_cards)
-    # location=["left", "right"], victory_points=1, activity=["Brown"])
-    # location=["left", "right"], victory_points=2, activity=["Gray"])
-    # location=["left", "right"], victory_points=1, activity=["Yellow"])
-    # location=["left", "right"], victory_points=1, activity=["Green"])
-    # location=["left", "right"], victory_points=1, activity=["Red"])
-    # location=["self"], victory_points=1, activity=["Brown", "Gray", "Purple"])
-    # scientists_guild = Guild(3, "Purple", "3+", "scientists_guild1", cost={"wood": 2, "ore": 2, "papyrus":1}, resource_choices={"choices": [{"compass": 1, "tablet": 1, "gear": 1}]})
-    # magistrates_guild = Guild(3, "Purple", "3+", "magistrates_guild1", cost={"wood": 3, "stone":1, "cloth": 1}, location=["left", "right"], victory_points=1, activity=["Blue"])
-    # builders_guild = Guild(3, "Purple", "3+", "builders_guild1", cost={"stone": 3, "clay": 2, "glass": 1}, location=["self", "left", "right"], victory_points=1, activity=["Wonders"])
-    # decorators_guild = Guild(3, "Purple", "3+", "decorators_guild1", cost={"ore": 2, "stone": 1, "cloth":1}, victory_points=7)
-
+    purple_cards = [card for card in player.cards.values() if card.color == "Purple"]
+    fs = 0
+    for card in purple_cards:
+        fs += resolve_victory_points_from_guilds(card)
+    final_score += fs
 
     return final_score
 
@@ -124,6 +132,12 @@ async def setup_next_turn(game_id):
             reset_temporary_resources(game)
             print(f"Going from turn {game.turn} -> {game.turn+1}")
             game.turn += 1
+            # if game.turn == 3: # REMOVE
+            #     end_game(game) # remove
+            #     print(f"ended game!")
+            #     for player in game.players:
+            #         print(f"Final Score of {player.name} is {player.victory_points}")
+
             if game.age == 2: # anti clockwise
                 previous_players_cards = game.players[0].cards_to_pick_from
                 temp_cards = []
@@ -138,6 +152,13 @@ async def setup_next_turn(game_id):
                     temp_cards = game.players[i].cards_to_pick_from
                     game.players[i].cards_to_pick_from = previous_players_cards
                     previous_players_cards = temp_cards
+            for player in game.players:
+                print(player.cards.values())
+                player.traded = False
+                player.temporary_resources = {}
+            for card in game.age_II_cards:
+                print(card)
+
             await insert_game_into_redis(game_id, game, lock)
             return game
     except Exception as e:

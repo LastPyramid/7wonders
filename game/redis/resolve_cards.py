@@ -81,13 +81,73 @@ def resolve_commercial_structure_condition(player, activity, points_per_conditio
                                 stage_of_wonder += 1
         return points_per_condition*stage_of_wonder
 
-def resolve_victory_points_from_guilds(player, purple_cards):
-    pass
+def resolve_victory_points_from_guilds(player, card):
+    score = 0
+    if card.name == "decorators_guild1":
+        wonder = player.wonder
+        if wonder.stage1.purchased:
+            if wonder.stage2.purchased:
+                if wonder.stage3:
+                    if wonder.stage3.purchased:
+                        if wonder.stage4:
+                            if wonder.stage4.purchased:
+                                score += 7
+                        else:
+                            score += 7
+                else:
+                    score += 7
+        return score
+    else:
+        if card.location:
+            for location in card.location:
+                if location == "left":
+                    for activity in card.activity:
+                        score += resolve_guild_condition(player.left, activity, player.victory_points)
+                elif location == "right":
+                    for activity in card.activity:
+                        score += resolve_guild_condition(player.right, activity, player.victory_points)
+                elif location == "self":
+                    for activity in card.activity:
+                        score += resolve_guild_condition(player, activity, player.victory_points)
+    return score
 
-def resolve_victory_points_from_sientific_structure_with_scientists_guild():
-    pass
+def resolve_guild_condition(player, activity, points_per_condition): 
+    if activity == "Brown":
+        brown_cards = [card for card in player.cars if card.color == "Brown"] 
+        return points_per_condition*player.len(brown_cards)
+    elif activity == "Gray":
+        gray_cards = [card for card in player.cars if card.color == "Gray"] 
+        return points_per_condition*player.len(gray_cards)
+    elif activity == "Yellow":
+        yellow_cards = [card for card in player.cars if card.color == "Yellow"] 
+        return points_per_condition*player.len(yellow_cards)
+    elif activity == "Green":
+        green_cards = [card for card in player.cars if card.color == "Green"] 
+        return points_per_condition*player.len(green_cards)
+    elif activity == "Red":
+        red_cards = [card for card in player.cars if card.color == "Red"] 
+        return points_per_condition*player.len(red_cards)
+    elif activity == "Purple":
+        purple_cards = [card for card in player.cars if card.color == "Purple"] 
+        return points_per_condition*player.len(purple_cards)
+    elif activity == "Wonders":
+        wonder = player.wonder
+        if wonder.stage1.purchased:
+            if wonder.stage2.purchased:
+                if wonder.stage3:
+                    if wonder.stage3.purchased:
+                        if wonder.stage4:
+                            if wonder.stage4.purchased:
+                                return points_per_condition*4
+                        else:
+                            return points_per_condition*3
+                else:
+                    return points_per_condition*2
+            else:
+                return points_per_condition
+    return 0
 
-def resolve_victory_points_from_sientific_structure(player, green_cards, ):
+def resolve_victory_points_from_sientific_structure(green_cards):
     final_score = 0
     compasses = [card for card in green_cards if card.compass]
     final_score += pow(len(compasses), 2)

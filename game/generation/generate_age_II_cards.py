@@ -139,7 +139,6 @@ def generate_age_II_commercial_structures(nr_of_players):
     else:
         raise Exception("nr_of_players should me 3-7")
 
-
 def generate_age_II_military_structures(nr_of_players):
     walls1 = MilitaryStructure(2, "Red", "3+", "walls1", cost={"stone": 3}, millitary_strength=2, symbol=["Wall"])
     walls2 = MilitaryStructure(2, "Red", "7+", "walls2", cost={"stone": 3}, millitary_strength=2, symbol=["Wall"])

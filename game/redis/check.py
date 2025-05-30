@@ -76,6 +76,13 @@ def check_if_player_has_resources_to_build_wonder_stage(player, stage):
 
     return False
 
+def check_if_players_have_babylon_night_stage2_power(game): # rename
+    for player in game.players:
+        if player.wonder == "Babylon_night.png":
+            if player.wonder.stage2.purchased:
+                return player
+    return False
+
 async def check_if_player_can_build_wonder_stage(player_name, game_id):
     redis = await get_redis_connection()
     lock = Lock(redis, f"lock:game:{game_id}", timeout=10)

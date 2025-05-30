@@ -141,7 +141,7 @@ async def get_player_channel_names(game_id):
         print(f"Could not get websockets from game {game_id}, error: {e}")
         traceback.print_exc()
         
-async def get_player_decisions(game_id):
+async def get_and_reset_player_decisions(game_id):
     print("in get_player_decisions!")
     redis = await get_redis_connection()
     lock = Lock(redis, f"lock:game:{game_id}", timeout=30)
@@ -189,6 +189,11 @@ def get_card_from_cards_to_pick_from(player, card_name):
 def get_player_from_game(game, name):
     for player in game.players:
         if player.name == name:
+            return player
+
+def get_player_from_game_based_on_id(game, player_id):
+    for player in game.players:
+        if player.player_id == player_id:
             return player
 
 async def get_lobbies():

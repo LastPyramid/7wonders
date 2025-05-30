@@ -30,6 +30,9 @@ class Game:
             player.resolve_references(players_by_name)
 
         return cls(
+            # age_I_cards=[Card.from_dict(card) for card in data["age_I_cards"]],
+            # age_II_cards=[Card.from_dict(card) for card in data["age_II_cards"]],
+            # age_III_cards=[Card.from_dict(card) for card in data["age_III_cards"]],
             age_I_cards=[Card.from_dict(card) for card in data["age_I_cards"]],
             age_II_cards=[Card.from_dict(card) for card in data["age_II_cards"]],
             age_III_cards=[Card.from_dict(card) for card in data["age_III_cards"]],
@@ -82,8 +85,7 @@ class Player:
         self.player_id = player_id
         self.resources = {"compass": 0, "gear": 0, "tablet": 0, "ore": 0, "stone": 0, "wood": 0, "clay": 0,
                           "papyrus": 0, "cloth": 0, "glass": 0, "coins": 3}
-        self.temporary_resources = {"compass": 0, "gear": 0, "tablet": 0, "ore": 0, "stone": 0, "wood": 0, "clay": 0,
-                          "papyrus": 0, "cloth": 0, "glass": 0}
+        self.temporary_resources = {}
         self.cards = {}
         self.cards_to_pick_from = []
         self.free_construction = []
@@ -99,6 +101,7 @@ class Player:
         self.mixed_resources = []
         self.left_player = left_player
         self.right_player = right_player
+        self.traded = False
 
     def to_dict(self):
         wonder = None
@@ -129,7 +132,8 @@ class Player:
             "symbols": self.symbols,
             "mixed_resources": self.mixed_resources,
             "left_player_name": self.left_player.name if self.left_player else None,
-            "right_player_name": self.right_player.name if self.right_player else None
+            "right_player_name": self.right_player.name if self.right_player else None,
+            "traded": self.right_player.name
         }
 
     @classmethod
@@ -159,6 +163,7 @@ class Player:
         player.mixed_resources = data.get("mixed_resources", [])
         player._left_player_name = data.get("left_player_name")
         player._right_player_name = data.get("right_player_name")
+        player.has_traded = data.get("traded")
 
         return player
 

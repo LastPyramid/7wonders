@@ -16,9 +16,9 @@ def generate_wonders():
 
     alexandria = Wonder(
         "Alexandria_day.png", "glass",
-        stage1=Stage({"choices": [{"wood", "ore", "clay", "stone"}]}, {"clay": 2}),
-        stage2=Stage({"choices": [{"glass":1, "papyrus":1, "cloth":1}]}, {"ore": 3}),
-        stage3=Stage({"victory_points": 7}, {"wood": 4})
+        stage1=Stage({"victory_points": 3}, {"stone": 2}),
+        stage2=Stage({"choices": [{"wood":1, "ore":1, "clay":1, "stone":1}]}, {"ore": 2}),
+        stage3=Stage({"victory_points": 7}, {"papyrus": 1, "cloth": 1})
     )
 
     alexandria_night = Wonder(

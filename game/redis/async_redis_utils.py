@@ -6,7 +6,7 @@ from channels.layers import get_channel_layer
 from itertools import permutations
 from .resolve_cards import add_card_resources_to_player
 from .common import get_redis_connection, get_game_from_redis, insert_game_into_redis
-from .get import get_player_from_game, get_card_from_cards_to_pick_from
+from .get import get_player_from_game, get_card_from_cards_to_pick_from, get_player_based_on_player_id
 
 async def create_game_in_redis():
     redis = await get_redis_connection()
@@ -183,7 +183,7 @@ async def pick_card(game_id, card_name, player_name):
         print(f"Could not pick a card this should not happen, error: {e}")
         traceback.print_exc()
         
-async def player_can_pick_card(player_name, game_id, card_name):
+async def player_can_pick_card(player_name, game_id, card_name): # change name of function?
     redis = await get_redis_connection()
     lock = Lock(redis, f"lock:game:{game_id}", timeout=30)
     try:
@@ -247,7 +247,7 @@ def add_card_to_player(game, player_name, card_name):
             add_card_resources_to_player(card, player)
             card = player.cards_to_pick_from.pop(i)
             player.cards[card.name] = card
-            return True
+            return player
     return False
 
 async def insert_player_choice_into_game(player_name, game_id, choice):
@@ -262,3 +262,52 @@ async def insert_player_choice_into_game(player_name, game_id, choice):
     except Exception as e:
         print(f"Could not get cards, error: {e}")
         traceback.print_exc()
+
+async def trade(game_id, player_name, target_id, resources):
+    redis = await get_redis_connection()
+    lock = Lock(redis, f"lock:game:{game_id}", timeout=30)
+    try:
+        async with lock:
+            game = await get_game_from_redis(game_id, lock)
+            player = get_player_from_game(game, player_name)
+            target = get_player_based_on_player_id(game, target_id)
+            player_could_perform_trade = perform_trade(player, target, resources)
+            if player_could_perform_trade:
+                await insert_game_into_redis(game_id, game, lock)
+                return True
+            else:
+                return False
+    except Exception as e:
+        print(f"Could not perform trade, error: {e}")
+        traceback.print_exc()
+
+# {"type":"trade","target":0,"resource":{"wood":1,"papyrus":1,"cloth":1}}
+def perform_trade(player, target, resources):
+    if player.traded:
+        return False
+    cost_per_resource = 2
+    if player.marketplace:
+        cost_per_resource = 1
+    elif player.east_trading:
+        if target.name == player.right_player.name:
+            cost_per_resource = 1
+    elif player.west_trading:
+        if target.name == player.left_player.name:
+            cost_per_resource = 1
+    player_coins = player.resources["coins"]
+    amount_of_resources = 0
+    temporary_resources = {}
+    for resource, amount in resources.items():
+        temporary_resources[resource] = amount
+        amount_of_resources += amount
+    cost_of_all_resources = amount_of_resources*cost_per_resource
+    player_coins -= cost_of_all_resources
+    if player_coins >= 0:
+        player.temporary_resources = temporary_resources
+        player.resources["coins"] = player_coins
+        target.resources["coins"] += cost_of_all_resources
+        player.traded = True
+        print(f"Trading! {player.name} bought: {temporary_resources} for {cost_of_all_resources} coins")
+        return True
+    else:
+        return False
