@@ -1,5 +1,5 @@
 import traceback
-from aioredis.lock import Lock
+from redis.asyncio.lock import Lock
 from ..game.models import Wonder
 from .setups import setup_player_resources
 from .common import get_redis_connection, get_game_from_redis, insert_game_into_redis

@@ -1,6 +1,6 @@
 from channels.layers import get_channel_layer
 from .common import get_redis_connection, get_game_from_redis, insert_game_into_redis
-from aioredis.lock import Lock
+from redis.asyncio.lock import Lock
 from .resolve_cards import (resolve_millitary_conflicts, resolve_victory_points_from_commercial_structure,
     resolve_victory_points_from_sientific_structure, resolve_victory_points_from_civilian_structure,
     resolve_victory_points_from_guilds)

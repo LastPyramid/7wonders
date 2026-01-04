@@ -1,5 +1,5 @@
 from itertools import permutations
-from aioredis.lock import Lock
+from redis.asyncio.lock import Lock
 import traceback
 from time import time
 from channels.layers import get_channel_layer

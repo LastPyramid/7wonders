@@ -1,0 +1,32 @@
+version: "3.9"
+
+services: # Here we start to define all containers
+  backend:
+    build: . # Build a Docker image from this location
+    volumes:
+      - .:/app #maps ./ to /app within the container
+    ports:
+      - "8000:8000" #Expose port 8000 of host to port 8000 of the container
+    env_file:
+      - .env # Reads env_variables from .env into the container
+    depends_on: # Make sure db and redis starts before this container
+      - db
+      - redis
+    command: > # Runs a command on startup
+      sh -c "
+      python manage.py migrate &&
+      python manage.py runserver 0.0.0.0:8000
+      "
+
+  db:
+    image: postgres:16 # Specify a Image
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # Stores database-data herepostgres_data
+    env_file:
+      - .env
+
+  redis:
+    image: redis:7
+
+volumes:
+  postgres_data:

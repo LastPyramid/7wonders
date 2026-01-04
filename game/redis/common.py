@@ -1,9 +1,19 @@
 from ..game.models import Game
-from aioredis.lock import Lock
+from redis.asyncio.lock import Lock
+#import aioredis
 import traceback
-import aioredis
+import redis.asyncio as aioredis  # alias it to avoid changing your code
+import os
 
+REDIS_HOST = os.environ.get("REDIS_HOST", "127.0.0.1")
+REDIS_PORT = os.environ.get("REDIS_PORT", 6379)
 redis = None  # Global Redis connection object
+
+async def get_redis_connection():
+    global redis
+    if not redis:
+        redis = await aioredis.from_url(f"redis://{REDIS_HOST}:{REDIS_PORT}", decode_responses=True)
+    return redis
 
 async def get_game_from_redis(game_id, lock):
     if lock == None:
@@ -17,12 +27,6 @@ async def get_game_from_redis(game_id, lock):
     except Exception as e:
         print(f"could not get game from redis, error: {e}")
         traceback.print_exc()
-
-async def get_redis_connection():
-    global redis
-    if not redis:
-        redis = await aioredis.from_url("redis://127.0.0.1:6379", decode_responses=True)
-    return redis
 
 async def insert_game_into_redis(game_id, game, lock=None):
     redis = await get_redis_connection()
