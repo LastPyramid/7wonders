@@ -1,6 +1,5 @@
 from ..game.models import Game
 from redis.asyncio.lock import Lock
-#import aioredis
 import traceback
 import redis.asyncio as aioredis  # alias it to avoid changing your code
 import os

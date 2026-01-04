@@ -59,10 +59,6 @@ class LoginAPIView(APIView):
             }, status=status.HTTP_200_OK)
         return Response({"message": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
 
-# async def join(request):
-#     asd = json.loads(request.body)
-#     return JsonResponse({"message": "ok"})
-
 @ensure_csrf_cookie
 def csrf_init(request): # We use this endpoint in order to set a csrf cookie for the frontend
     return JsonResponse({"detail": "CSRF cookie set"})
@@ -77,6 +73,7 @@ async def lobbies(request):
                 "game_data": lobbies
     })
     return JsonResponse({"message": "ok"})
+
 async def send(request): # NOT USED RIGHT?
     print(request)
     return JsonResponse({"message": "ok"})

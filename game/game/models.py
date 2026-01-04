@@ -30,9 +30,6 @@ class Game:
             player.resolve_references(players_by_name)
 
         return cls(
-            # age_I_cards=[Card.from_dict(card) for card in data["age_I_cards"]],
-            # age_II_cards=[Card.from_dict(card) for card in data["age_II_cards"]],
-            # age_III_cards=[Card.from_dict(card) for card in data["age_III_cards"]],
             age_I_cards=[Card.from_dict(card) for card in data["age_I_cards"]],
             age_II_cards=[Card.from_dict(card) for card in data["age_II_cards"]],
             age_III_cards=[Card.from_dict(card) for card in data["age_III_cards"]],
@@ -419,9 +416,6 @@ class Guild(Card):
         self.location = location
         self.activity = activity
         self.victory_points = victory_points
-        # self.compass = compass
-        # self.gear = gear
-        # self.tablet = tablet
 
     def to_dict(self):
         data = super().to_dict()
@@ -429,9 +423,6 @@ class Guild(Card):
             "location": self.location,
             "activity": self.activity,
             "victory_points": self.victory_points,
-            # "compass": self.compass,
-            # "gear": self.gear,
-            # "tablet": self.tablet,
         })
         return data
 
@@ -449,9 +440,6 @@ class Guild(Card):
             location=data.get("location"),
             activity=data.get("activity"),
             victory_points=data.get("victory_points"),
-            # compass=data.get("compass"),
-            # gear=data.get("gear"),
-            # tablet=data.get("tablet"),
         )
 
 class Wonder():

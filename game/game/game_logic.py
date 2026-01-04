@@ -35,7 +35,6 @@ def setup_game(list_of_players):
 	players[-1].left_player = players[-2]
 	players[-1].right_player = players[0]
 
-	
     # Give players cards
 	for player in players:
 		for card in range(7):

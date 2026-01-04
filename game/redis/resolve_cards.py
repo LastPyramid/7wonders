@@ -195,8 +195,10 @@ def resolve_wonder_stage_victory_points(card, player): # used at the end of game
 
 def add_wonder_resources_to_player_inventory(stage, player):
     pass # NEED TO IMPLEMENT THIS!!!!
+    
 def add_card_resources_to_player(card, player):
     resolve_card_resources(card, player) # need to sort out resource choices
+
 def resolve_card_coin_gain(card, player, color):
     coins = 0
     for gain in card.gain["gain"]:

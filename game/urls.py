@@ -4,7 +4,6 @@ from . import views
 
 urlpatterns = [
     path('create', views.create),
-    #path('join', views.join),
     path('send', views.send), # REMOVE THIS I THINK
     path('start', views.start),
     path('init', views.csrf_init),
